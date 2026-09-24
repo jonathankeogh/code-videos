@@ -1,0 +1,8 @@
+renders/
+audio-src/stems/
+audio-src/__pycache__/
+audio-src/.venv/
+assets/audio/*.wav
+snapshots/
+node_modules/
+.hyperframes/

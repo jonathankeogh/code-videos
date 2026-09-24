@@ -1,0 +1,1419 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>The Laplacian Song</title>
+    <link rel="stylesheet" href="assets/vendor/katex.min.css" />
+    <script src="assets/vendor/gsap.min.js"></script>
+    <script src="assets/vendor/katex.min.js"></script>
+    <script src="assets/data/song-data.js"></script>
+    <style>
+      @font-face { font-family: "Fredoka"; src: url("assets/fonts/fredoka-500.woff2") format("woff2"); font-weight: 500; }
+      @font-face { font-family: "Fredoka"; src: url("assets/fonts/fredoka-600.woff2") format("woff2"); font-weight: 600; }
+      @font-face { font-family: "Fredoka"; src: url("assets/fonts/fredoka-700.woff2") format("woff2"); font-weight: 700; }
+      @font-face { font-family: "Nunito"; src: url("assets/fonts/nunito-800.woff2") format("woff2"); font-weight: 800; }
+      @font-face { font-family: "Nunito"; src: url("assets/fonts/nunito-900.woff2") format("woff2"); font-weight: 900; }
+      @font-face { font-family: "MathMain"; src: url("assets/vendor/fonts/KaTeX_Main-Regular.woff2") format("woff2"); font-weight: 400; }
+      @font-face { font-family: "MathMain"; src: url("assets/vendor/fonts/KaTeX_Main-Bold.woff2") format("woff2"); font-weight: 700; }
+
+      :root {
+        --paper: #f6f0e5;
+        --paper2: #ece2cf;
+        --grid: #e2d5bd;
+        --ink: #2b2420;
+        --clay: #d97757;
+        --clay-dk: #b3593c;
+        --clay-lt: #f2a58a;
+        --cream: #fff8ec;
+        --teal: #2f9e8c;
+        --rose: #e0567a;
+        --ochre: #e8b44a;
+        --sky: #6fa8e8;
+        --violet: #8b7ad8;
+        --night: #1f1a33;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--paper); }
+      #root {
+        position: relative; width: 100%; height: 100%; overflow: hidden;
+        font-family: "Fredoka", sans-serif; color: var(--ink);
+      }
+      .clip { position: absolute; inset: 0; }
+      .abs { position: absolute; }
+      .full { position: absolute; inset: 0; }
+
+      /* ---------- background ---------- */
+      #bg-paper { position: absolute; inset: 0; background: radial-gradient(1200px 800px at 50% 40%, #fffaf0 0%, var(--paper) 55%, var(--paper2) 100%); }
+      #bg-grid {
+        position: absolute; inset: -60px;
+        background-image:
+          linear-gradient(var(--grid) 2px, transparent 2px),
+          linear-gradient(90deg, var(--grid) 2px, transparent 2px);
+        background-size: 60px 60px; opacity: 0.55;
+      }
+
+      /* ---------- scenes ---------- */
+      .scene { overflow: hidden; }
+      .inner { position: absolute; inset: 0; }
+      .card {
+        position: absolute; background: #fffdf8; border: 6px solid var(--ink); border-radius: 28px;
+        box-shadow: 10px 12px 0 rgba(43, 36, 32, 0.9);
+      }
+      .big-title { font-family: "Fredoka"; font-weight: 700; letter-spacing: 0.01em; }
+      .nabla { font-family: "MathMain", serif; font-weight: 700; line-height: 1; }
+      .chip {
+        position: absolute; display: flex; align-items: center; justify-content: center;
+        font-family: "Nunito"; font-weight: 900; border: 5px solid var(--ink); border-radius: 18px;
+        background: var(--cream);
+      }
+      .katex { font-size: 1em; }
+      .star { position: absolute; width: 60px; height: 60px; }
+
+      /* intro */
+      #intro-title { position: absolute; left: 1010px; top: 70px; width: 700px; height: 560px; }
+      #intro-nabla { position: absolute; left: 0; top: 0; width: 700px; text-align: center; font-size: 330px; color: var(--clay); -webkit-text-stroke: 8px var(--ink); paint-order: stroke fill; }
+      #intro-nabla sup { font-size: 0.5em; vertical-align: 0.9em; }
+      #intro-word { position: absolute; left: 0; top: 400px; width: 700px; display: flex; justify-content: center; gap: 4px; font-size: 96px; font-weight: 700; color: var(--ink); }
+      #intro-word span { display: inline-block; }
+      .bubble {
+        position: absolute; left: 760px; top: 640px; padding: 26px 44px; background: #fff; border: 6px solid var(--ink);
+        border-radius: 40px; font-family: "Fredoka"; font-weight: 600; font-size: 64px; white-space: nowrap;
+        box-shadow: 8px 10px 0 rgba(43, 36, 32, 0.85);
+      }
+      .bubble::before {
+        content: ""; position: absolute; left: -38px; top: 40px; width: 0; height: 0;
+        border-top: 22px solid transparent; border-bottom: 22px solid transparent; border-right: 38px solid var(--ink);
+      }
+      .bubble::after {
+        content: ""; position: absolute; left: -26px; top: 46px; width: 0; height: 0;
+        border-top: 16px solid transparent; border-bottom: 16px solid transparent; border-right: 28px solid #fff;
+      }
+      .floaty { position: absolute; font-family: "MathMain"; color: var(--clay-dk); opacity: 0.18; }
+
+      /* grid scene */
+      #grid { position: absolute; left: 120px; top: 90px; width: 980px; height: 700px; }
+      .tile {
+        position: absolute; width: 128px; height: 128px; border-radius: 18px; border: 5px solid rgba(43, 36, 32, 0.85);
+      }
+      .tile .v {
+        position: absolute; right: 8px; bottom: 2px; font-family: "Nunito"; font-weight: 900; font-size: 36px; color: var(--ink);
+      }
+      .tile .w {
+        position: absolute; left: 22px; top: -30px; padding: 0 12px; font-family: "Nunito"; font-weight: 900; font-size: 36px;
+        background: var(--cream); border: 4px solid var(--ink); border-radius: 14px; line-height: 44px; z-index: 5;
+      }
+      #ring { position: absolute; width: 170px; height: 170px; border-radius: 50%; border: 8px solid var(--clay); }
+      #panel { left: 1160px; top: 96px; width: 700px; height: 690px; }
+      #panel h3 { position: absolute; left: 40px; top: 24px; font-size: 44px; font-weight: 700; color: var(--clay-dk); }
+      .prow { position: absolute; left: 40px; font-family: "Nunito"; font-weight: 800; font-size: 50px; color: var(--ink); white-space: nowrap; }
+      .prow .hl { color: var(--teal); }
+      #stencil-tex { position: absolute; left: 30px; top: 490px; font-size: 43px; white-space: nowrap; }
+      .tile .w:empty { display: none; }
+      .flyer { position: absolute; width: 70px; height: 70px; font-size: 44px; }
+
+      /* curve scene */
+      #curve-svg { position: absolute; left: 0; top: 0; }
+      .badge {
+        position: absolute; width: 190px; height: 190px; border-radius: 50%; border: 8px solid var(--ink);
+        display: flex; align-items: center; justify-content: center; font-family: "Nunito"; font-weight: 900; font-size: 150px; color: #fff;
+        box-shadow: 8px 10px 0 rgba(43, 36, 32, 0.85);
+      }
+      .badge-cap { position: absolute; font-family: "Fredoka"; font-weight: 700; font-size: 52px; white-space: nowrap; text-align: center; }
+      .tag-lbl { position: absolute; font-family: "Fredoka"; font-weight: 600; font-size: 36px; white-space: nowrap; color: var(--ink); }
+
+      /* chorus */
+      #ch-bg { position: absolute; inset: 0; background: radial-gradient(1100px 800px at 50% 60%, #ffb58f 0%, var(--clay) 55%, #b9543a 100%); }
+      #ch-rays {
+        position: absolute; left: -540px; top: -960px; width: 3000px; height: 3000px;
+        background: repeating-conic-gradient(from 0deg, rgba(255, 248, 236, 0.16) 0deg 9deg, rgba(255, 248, 236, 0) 9deg 18deg);
+        border-radius: 50%;
+      }
+      .kin {
+        position: absolute; font-family: "Fredoka"; font-weight: 700; font-size: 190px; color: var(--cream);
+        -webkit-text-stroke: 12px var(--ink); paint-order: stroke fill; white-space: nowrap; line-height: 1;
+      }
+      #formula {
+        left: 360px; top: 36px; width: 1200px; height: 230px; display: flex; align-items: center; justify-content: center; gap: 22px;
+        font-size: 92px;
+      }
+      #formula .part { display: inline-block; padding: 4px 14px; border-radius: 22px; }
+      .curv-icon { position: absolute; }
+      #you-text { position: absolute; left: 1080px; top: 380px; font-size: 190px; color: var(--rose); }
+      #avg-band {
+        position: absolute; left: 160px; top: 300px; width: 1600px; text-align: center; font-size: 120px;
+      }
+      #footnote { position: absolute; left: 1090px; top: 610px; font-family: "Nunito"; font-weight: 800; font-size: 34px; color: var(--cream); }
+
+      /* heat */
+      #heat-bg { position: absolute; inset: 0; background: radial-gradient(1400px 900px at 45% 45%, #2e2748 0%, var(--night) 70%); }
+      #heat-canvas { position: absolute; left: 190px; top: 150px; width: 1300px; height: 731px; border-radius: 30px; border: 8px solid #0f0c1c; }
+      #heat-eq { left: 520px; top: 12px; width: 880px; height: 124px; display: flex; align-items: center; justify-content: center; gap: 18px; font-size: 76px; }
+      #heat-eq .part { display: inline-block; padding: 0 10px; border-radius: 16px; }
+      .heat-lbl {
+        position: absolute; font-family: "Fredoka"; font-weight: 700; font-size: 58px; color: #fff; white-space: nowrap;
+        -webkit-text-stroke: 10px #0f0c1c; paint-order: stroke fill;
+      }
+
+      /* harmonic */
+      #harm-bg { position: absolute; inset: 0; background: linear-gradient(180deg, #2a2352 0%, #3b3170 55%, #5a4a8f 100%); }
+      #surf-canvas { position: absolute; left: 390px; top: 150px; width: 1140px; height: 640px; }
+      #harm-title { position: absolute; left: 0; top: 18px; width: 1920px; text-align: center; font-size: 120px; color: #fff; }
+      #harm-sub { position: absolute; left: 0; top: 150px; width: 1920px; text-align: center; font-family: "Fredoka"; font-weight: 600; font-size: 50px; color: #ffe8c9; }
+      .app-card { position: absolute; top: 560px; width: 440px; height: 330px; background: #fffdf8; border: 6px solid var(--ink); border-radius: 26px; box-shadow: 8px 10px 0 rgba(15, 12, 28, 0.8); overflow: hidden; }
+      .app-card .cap { position: absolute; left: 0; bottom: 14px; width: 100%; text-align: center; font-family: "Fredoka"; font-weight: 700; font-size: 44px; }
+      .app-card canvas, .app-card svg { position: absolute; left: 0; top: 0; }
+
+      /* final */
+      #fin-bg { position: absolute; inset: 0; background: radial-gradient(1200px 900px at 50% 50%, #7fd6c6 0%, var(--teal) 60%, #1f6f63 100%); }
+      #fin-rays {
+        position: absolute; left: -540px; top: -960px; width: 3000px; height: 3000px; border-radius: 50%;
+        background: repeating-conic-gradient(from 4deg, rgba(255, 248, 236, 0.14) 0deg 8deg, rgba(255, 248, 236, 0) 8deg 16deg);
+      }
+      #plus-glow { position: absolute; left: 0; top: 0; }
+      .wbadge {
+        position: absolute; width: 130px; height: 84px; border-radius: 24px; border: 6px solid var(--ink); background: var(--cream);
+        display: flex; align-items: center; justify-content: center; font-family: "Nunito"; font-weight: 900; font-size: 58px;
+      }
+      #spot { position: absolute; inset: 0; background: radial-gradient(380px 380px at 960px 470px, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0) 60%, rgba(15, 12, 28, 0.78) 100%); }
+
+      /* tag */
+      #tag-bg { position: absolute; inset: 0; background: linear-gradient(180deg, #120f24 0%, #251f47 60%, #3c3170 100%); }
+      #tag-sun { position: absolute; inset: 0; background: radial-gradient(1400px 900px at 50% 100%, #ffd28a 0%, #ff9d6e 35%, #d97757 60%, #7b4a8f 100%); }
+      .twinkle { position: absolute; width: 8px; height: 8px; border-radius: 50%; background: #fff; }
+      #tag-eq { position: absolute; left: 0; top: 150px; width: 1920px; text-align: center; font-size: 150px; color: #fff; }
+      #tag-title { position: absolute; left: 0; top: 110px; width: 1920px; text-align: center; font-size: 230px; color: var(--cream); -webkit-text-stroke: 14px var(--ink); paint-order: stroke fill; }
+      #end-formula { position: absolute; left: 0; top: 400px; width: 1920px; text-align: center; font-size: 66px; color: var(--ink); }
+      #end-credit { position: absolute; left: 0; top: 530px; width: 1920px; text-align: center; font-family: "Fredoka"; font-weight: 600; font-size: 46px; color: var(--ink); }
+      .note { position: absolute; width: 70px; height: 90px; }
+      .confetti { position: absolute; width: 22px; height: 12px; border-radius: 3px; }
+
+      /* ---------- cast ---------- */
+      .rig { position: absolute; left: 0; top: 0; width: 240px; height: 200px; }
+      .squash, .bouncer { position: absolute; inset: 0; }
+      .cw { position: absolute; left: 0; top: 0; overflow: visible; }
+
+      /* ---------- lyrics ---------- */
+      #ly-bar {
+        position: absolute; left: 160px; top: 944px; width: 1600px; height: 112px; border-radius: 56px;
+        background: rgba(31, 26, 51, 0.62);
+      }
+      .ly-line {
+        position: absolute; left: 160px; top: 944px; width: 1600px; height: 112px; display: flex; align-items: center; justify-content: center;
+        font-family: "Nunito"; font-weight: 900; font-size: 60px; color: var(--cream); white-space: nowrap;
+      }
+      .ly-w { display: inline-block; margin: 0 12px; }
+      .ly-w.tight { margin-left: -10px; }
+      .ly-w sub { font-size: 0.6em; }
+      .ly-line.nbr { font-style: italic; color: #bff0e6; }
+
+      /* ---------- fx ---------- */
+      .stripe { position: absolute; top: -200px; width: 1300px; height: 1480px; }
+      #flash { position: absolute; inset: 0; background: #fff; }
+      #vignette { position: absolute; inset: 0; background: radial-gradient(1500px 1000px at 50% 50%, rgba(0, 0, 0, 0) 60%, rgba(20, 14, 10, 0.28) 100%); }
+      #grain { position: absolute; inset: -64px; background-image: url("assets/img/grain.png"); background-size: 256px 256px; opacity: 0.07; mix-blend-mode: multiply; }
+      #fade-out { position: absolute; inset: 0; background: var(--paper); }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="72" data-width="1920" data-height="1080">
+      <!-- persistent paper + graph grid -->
+      <div id="bg" class="clip" data-start="0" data-duration="72" data-track-index="0">
+        <div id="bg-paper"></div>
+        <div id="bg-grid"></div>
+      </div>
+
+      <!-- 1. intro -->
+      <section id="s-intro" class="clip scene" data-start="0" data-duration="8.02" data-track-index="1">
+        <div class="inner" id="intro-inner">
+          <div id="floaties" data-layout-allow-occlusion></div>
+          <div id="intro-title">
+            <div id="intro-nabla" class="nabla">∇<sup>2</sup></div>
+            <div id="intro-word"></div>
+          </div>
+          <div id="intro-stars"></div>
+          <div class="bubble" id="b1">Hey! It's me, Claude.</div>
+          <div class="bubble" id="b2">Let me explain the Laplacian…</div>
+          <div class="bubble" id="b3">…with a song!</div>
+          <div class="bubble" id="b4">Hit it!</div>
+        </div>
+      </section>
+
+      <!-- 2. the stencil grid -->
+      <section id="s-grid" class="clip scene" data-start="8" data-duration="8.02" data-track-index="1">
+        <div class="inner" id="grid-inner">
+          <div id="grid"></div>
+          <div id="ring"></div>
+          <div id="grid-cast"></div>
+          <div class="card" id="panel">
+            <h3>Laplacian at this point</h3>
+            <div class="prow" id="pr1" style="top: 110px">neighbors:</div>
+            <div class="prow" id="pr2" style="top: 200px">average = 26 ÷ 4 = <span class="hl">6.5</span></div>
+            <div class="prow" id="pr3" style="top: 290px">6.5 − 3 = <span class="hl" id="pr3-res">+3.5</span></div>
+            <div class="prow" id="pr4" style="top: 380px; font-size: 40px; color: #6b5d52">so it's positive here!</div>
+            <div id="stencil-tex"></div>
+          </div>
+          <div id="flyers"></div>
+        </div>
+      </section>
+
+      <!-- 3. valley & peak -->
+      <section id="s-curve" class="clip scene" data-start="16" data-duration="8.05" data-track-index="1">
+        <div class="inner" id="curve-inner">
+          <svg id="curve-svg" width="1920" height="1080" viewBox="0 0 1920 1080"></svg>
+          <div class="badge" id="badge-plus" style="left: 150px; top: 300px; background: var(--teal)">+</div>
+          <div class="badge-cap" id="cap-plus" style="left: 70px; top: 510px; width: 360px; color: #1f7a6c">valley: ∇²f &gt; 0</div>
+          <div class="badge" id="badge-minus" style="left: 1580px; top: 120px; background: var(--rose)">−</div>
+          <div class="badge-cap" id="cap-minus" style="left: 1480px; top: 330px; width: 400px; color: #b8324f">peak: ∇²f &lt; 0</div>
+        </div>
+      </section>
+
+      <!-- 4. chorus -->
+      <section id="s-chorus" class="clip scene" data-start="24" data-duration="16.02" data-track-index="1">
+        <div class="inner" id="chorus-inner">
+          <div id="ch-bg"></div>
+          <div id="ch-rays" data-layout-allow-overflow></div>
+          <div id="ch-cast"></div>
+          <div id="ch-kin"></div>
+          <div class="card" id="formula">
+            <span class="part" id="fp0"></span><span class="part" id="fp1"></span><span class="part" id="fp2"></span><span class="part" id="fp3"></span>
+          </div>
+          <svg class="curv-icon" id="icon-x" width="260" height="120" viewBox="0 0 260 120" style="left: 700px; top: 272px">
+            <path d="M20 20 Q130 150 240 20" fill="none" stroke="#fff8ec" stroke-width="12" stroke-linecap="round" />
+            <text x="130" y="112" text-anchor="middle" font-family="Nunito" font-weight="900" font-size="34" fill="#fff8ec">bend in x</text>
+          </svg>
+          <svg class="curv-icon" id="icon-y" width="260" height="120" viewBox="0 0 260 120" style="left: 1150px; top: 272px">
+            <path d="M20 20 Q130 150 240 20" fill="none" stroke="#fff8ec" stroke-width="12" stroke-linecap="round" />
+            <text x="130" y="112" text-anchor="middle" font-family="Nunito" font-weight="900" font-size="34" fill="#fff8ec">bend in y</text>
+          </svg>
+          <div class="kin" id="avg-band" style="font-size: 110px">AVERAGE OF YOUR NEIGHBORS</div>
+          <div class="kin" id="you-text">− YOU!</div>
+          <div id="footnote">(× 4/h² on a grid of spacing h)</div>
+        </div>
+      </section>
+
+      <!-- 5. heat equation -->
+      <section id="s-heat" class="clip scene" data-start="40" data-duration="8.25" data-track-index="1">
+        <div class="inner" id="heat-inner">
+          <div id="heat-bg"></div>
+          <canvas id="heat-canvas" width="400" height="225"></canvas>
+          <div id="heat-cast"></div>
+          <div class="card" id="heat-eq"><span class="part" id="hp0"></span><span class="part" id="hp1"></span><span class="part" id="hp2"></span></div>
+          <div class="heat-lbl" id="lbl-hot">hot spots cool ↓</div>
+          <div class="heat-lbl" id="lbl-cold">cold spots warm ↑</div>
+          <div class="heat-lbl" id="lbl-peer" style="left: 520px; top: 890px; font-size: 40px">everyone becomes more like their neighbors</div>
+        </div>
+      </section>
+
+      <!-- 6. harmonic: laplacian = 0 -->
+      <section id="s-harm" class="clip scene" data-start="47.7" data-duration="8.32" data-track-index="1">
+        <div class="inner" id="harm-inner">
+          <div id="harm-bg"></div>
+          <div id="harm-stars"></div>
+          <canvas id="surf-canvas" width="1140" height="640"></canvas>
+          <div id="harm-title" class="nabla"></div>
+          <div id="harm-sub">every point = the average of the points around it</div>
+          <div class="app-card" id="card-soap" style="left: 250px"><canvas id="soap-canvas" width="440" height="330"></canvas><div class="cap">soap films</div></div>
+          <div class="app-card" id="card-heat" style="left: 740px"><div id="steady-plate" class="full"></div><div class="cap">steady heat</div></div>
+          <div class="app-card" id="card-field" style="left: 1230px"><svg id="field-svg" width="440" height="330" viewBox="0 0 440 330"></svg><div class="cap">electric fields</div></div>
+        </div>
+      </section>
+
+      <!-- 7. final chorus: the stencil, performed -->
+      <section id="s-final" class="clip scene" data-start="56" data-duration="8.35" data-track-index="1">
+        <div class="inner" id="final-inner">
+          <div id="fin-bg"></div>
+          <div id="fin-rays" data-layout-allow-overflow></div>
+          <div id="fin-crowd"></div>
+          <svg id="plus-glow" width="1920" height="1080" viewBox="0 0 1920 1080"></svg>
+          <div id="fin-cast"></div>
+          <div id="fin-badges"></div>
+          <div class="kin" id="fin-title" style="left: 0; top: 30px; width: 1920px; text-align: center; font-size: 170px">LAPLACIAN!</div>
+          <div id="spot"></div>
+        </div>
+      </section>
+
+      <!-- 8. tag: harmonic! + end card -->
+      <section id="s-tag" class="clip scene" data-start="63.7" data-duration="8.3" data-track-index="1">
+        <div class="inner" id="tag-inner">
+          <div id="tag-bg"></div>
+          <div id="tag-sun"></div>
+          <div id="tag-stars"></div>
+          <div id="tag-eq" class="nabla"></div>
+          <div id="tag-notes"></div>
+          <div id="tag-cast"></div>
+          <div id="tag-title" class="big-title">HARMONIC!</div>
+          <div id="end-formula"></div>
+          <div id="end-credit">a song by Claude · made with HyperFrames</div>
+          <div id="confetti"></div>
+        </div>
+      </section>
+
+      <!-- Claude (Clawd) lives across every scene -->
+      <div id="cast" class="clip" data-start="0" data-duration="72" data-track-index="3"></div>
+
+      <!-- karaoke lyrics -->
+      <div id="lyrics" class="clip" data-start="0" data-duration="72" data-track-index="4">
+        <div id="ly-bar"></div>
+      </div>
+
+      <!-- transitions + finishing -->
+      <div id="fx" class="clip" data-start="0" data-duration="72" data-track-index="5">
+        <div id="stripes"></div>
+        <div id="flash"></div>
+        <div id="vignette"></div>
+        <div id="grain"></div>
+        <div id="fade-out"></div>
+      </div>
+
+      <audio id="song" src="assets/audio/laplacian-song.wav" data-start="0" data-duration="72" data-track-index="10" data-volume="1"></audio>
+    </div>
+
+    <script>
+      (function () {
+        const S = window.SONG;
+        const INK = "#2b2420";
+        const tl = gsap.timeline({ paused: true });
+        const $ = (id) => document.getElementById(id);
+
+        // ---------- seeded randomness ----------
+        function mulberry32(a) {
+          return function () {
+            a |= 0; a = (a + 0x6d2b79f5) | 0;
+            let t = Math.imul(a ^ (a >>> 15), 1 | a);
+            t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+          };
+        }
+        const rnd = mulberry32(20260924);
+
+        // ---------- helpers ----------
+        const lerp = (a, b, k) => a + (b - a) * k;
+        const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+        function el(tag, attrs, parent, html) {
+          const e = document.createElement(tag);
+          for (const k in attrs || {}) {
+            if (k === "style") e.style.cssText = attrs[k];
+            else if (k === "class") e.className = attrs[k];
+            else e.setAttribute(k, attrs[k]);
+          }
+          if (html !== undefined) e.innerHTML = html;
+          if (parent) parent.appendChild(e);
+          return e;
+        }
+        function svgEl(tag, attrs, parent) {
+          const e = document.createElementNS("http://www.w3.org/2000/svg", tag);
+          for (const k in attrs) e.setAttribute(k, attrs[k]);
+          if (parent) parent.appendChild(e);
+          return e;
+        }
+        function tex(target, src) {
+          katex.render(src, target, { throwOnError: false, output: "html" });
+        }
+        function pop(t, target, opts) {
+          const o = Object.assign({ dur: 0.45, ease: "back.out(2.2)", from: 0 }, opts || {});
+          gsap.set(target, { scale: o.from, opacity: 0 });
+          tl.to(target, { scale: 1, opacity: 1, duration: o.dur, ease: o.ease }, t);
+        }
+        function hide(t, target, dur) {
+          tl.to(target, { opacity: 0, scale: 0.85, duration: dur || 0.25, ease: "power2.in" }, t);
+        }
+        function starSVG(color, size) {
+          return `<svg viewBox="-50 -50 100 100" width="${size}" height="${size}"><path d="M0 -48 C6 -10 10 -6 48 0 C10 6 6 10 0 48 C-6 10 -10 6 -48 0 C-10 -6 -6 -10 0 -48Z" fill="${color}" stroke="${INK}" stroke-width="6"/></svg>`;
+        }
+        function noteSVG(color) {
+          return `<svg viewBox="0 0 70 90" width="70" height="90"><path d="M22 70 V14 L62 6 V58" fill="none" stroke="${INK}" stroke-width="7" stroke-linejoin="round"/><ellipse cx="14" cy="72" rx="14" ry="11" fill="${color}" stroke="${INK}" stroke-width="5"/><ellipse cx="54" cy="62" rx="14" ry="11" fill="${color}" stroke="${INK}" stroke-width="5"/></svg>`;
+        }
+
+        // ---------- characters (Clawd + neighbors) ----------
+        const shade = (hex, k) => {
+          const n = parseInt(hex.slice(1), 16);
+          const r = Math.round(((n >> 16) & 255) * k), g = Math.round(((n >> 8) & 255) * k), b = Math.round((n & 255) * k);
+          return `rgb(${r},${g},${b})`;
+        };
+        function clawdSVG(color, withProps) {
+          const st = `stroke="${INK}" stroke-width="6" stroke-linejoin="round"`;
+          const dk = shade(color, 0.72);
+          const eyeStar = (cx) => `<path transform="translate(${cx} 79)" d="M0 -20 L5 -6 L20 -6 L8 3 L12 18 L0 9 L-12 18 L-8 3 L-20 -6 L-5 -6Z" fill="#ffd66b" stroke="${INK}" stroke-width="4" stroke-linejoin="round"/>`;
+          const mic = withProps ? `<g class="cw-mic" opacity="0"><g transform="translate(230 96) scale(1.55) translate(-230 -96)"><rect x="222" y="58" width="16" height="40" rx="5" fill="#3b3440" stroke="${INK}" stroke-width="4"/><circle cx="230" cy="50" r="17" fill="#c9c3cf" stroke="${INK}" stroke-width="5"/><path d="M218 46 H242 M218 54 H242 M226 36 V64 M234 36 V64" stroke="#8a8392" stroke-width="2.5"/></g></g>` : "";
+          const thermo = withProps ? `<g class="cw-thermo" opacity="0"><rect x="0" y="12" width="20" height="76" rx="10" fill="#fff" stroke="${INK}" stroke-width="5"/><rect class="cw-merc" x="6" y="40" width="8" height="42" rx="4" fill="#e0453b"/><circle cx="10" cy="92" r="15" fill="#e0453b" stroke="${INK}" stroke-width="5"/></g>` : "";
+          return `<svg class="cw" viewBox="0 0 240 200" width="240" height="200">
+            <ellipse cx="120" cy="178" rx="100" ry="11" fill="rgba(20,14,10,.22)"/>
+            <g class="cw-legs">
+              <rect class="leg" x="50" y="132" width="22" height="42" rx="4" fill="${color}" ${st}/>
+              <rect class="leg" x="80" y="132" width="22" height="42" rx="4" fill="${color}" ${st}/>
+              <rect class="leg" x="138" y="132" width="22" height="42" rx="4" fill="${color}" ${st}/>
+              <rect class="leg" x="168" y="132" width="22" height="42" rx="4" fill="${color}" ${st}/>
+            </g>
+            <g class="cw-arm-l-o"><g class="cw-arm-l"><rect x="4" y="80" width="38" height="28" rx="5" fill="${color}" ${st}/>${thermo}</g></g>
+            <g class="cw-arm-r-o"><g class="cw-arm-r"><rect x="198" y="80" width="38" height="28" rx="5" fill="${color}" ${st}/>${mic}</g></g>
+            <rect class="cw-body" x="30" y="32" width="180" height="114" rx="12" fill="${color}" ${st}/>
+            <rect x="38" y="120" width="164" height="20" rx="9" fill="${dk}" opacity=".45"/>
+            <rect x="46" y="42" width="64" height="11" rx="5.5" fill="#fff" opacity=".28"/>
+            <g class="cw-eyes-o">
+              <g class="cw-eyes">
+                <rect x="72" y="60" width="20" height="38" rx="4" fill="${INK}"/>
+                <rect x="148" y="60" width="20" height="38" rx="4" fill="${INK}"/>
+                <rect x="76" y="64" width="7" height="9" rx="2" fill="#fff" opacity=".85"/>
+                <rect x="152" y="64" width="7" height="9" rx="2" fill="#fff" opacity=".85"/>
+              </g>
+              <g class="cw-happy" opacity="0" fill="none" stroke="${INK}" stroke-width="8" stroke-linecap="round">
+                <path d="M68 86 Q82 64 96 86"/><path d="M144 86 Q158 64 172 86"/>
+              </g>
+              <g class="cw-starry" opacity="0">${eyeStar(82)}${eyeStar(158)}</g>
+              <g class="cw-shut" opacity="0" stroke="${INK}" stroke-width="8" stroke-linecap="round"><path d="M68 80 H96"/><path d="M144 80 H172"/></g>
+            </g>
+            <g class="cw-blush" opacity="0"><ellipse cx="62" cy="112" rx="15" ry="8" fill="#ff7f9c" opacity=".7"/><ellipse cx="178" cy="112" rx="15" ry="8" fill="#ff7f9c" opacity=".7"/></g>
+            <g class="cw-sweat" opacity="0"><path d="M204 30 Q214 48 204 56 Q194 48 204 30Z" fill="#9fd4ff" stroke="${INK}" stroke-width="4"/></g>
+            <g class="cw-mouth"><ellipse cx="120" cy="116" rx="16" ry="12" fill="${INK}"/><ellipse cx="120" cy="122" rx="9" ry="4" fill="#e0607e"/></g>
+          </svg>`;
+        }
+
+        const chars = [];
+        function makeChar(parent, opts) {
+          const o = Object.assign({ color: "#d97757", cx: 960, by: 800, scale: 1, props: false, voice: "nbr", phase: 0, bounce: () => 0, dance: () => 0, win: [0, 72] }, opts);
+          const rig = el("div", { class: "rig" }, parent);
+          const squash = el("div", { class: "squash" }, rig);
+          const bouncer = el("div", { class: "bouncer" }, squash);
+          bouncer.innerHTML = clawdSVG(o.color, o.props);
+          const q = (s) => bouncer.querySelector(s);
+          const ch = Object.assign(o, {
+            rig, squash, bouncer, svg: q(".cw"), body: q(".cw-body"),
+            armL: q(".cw-arm-l"), armR: q(".cw-arm-r"), armLo: q(".cw-arm-l-o"), armRo: q(".cw-arm-r-o"),
+            eyesO: q(".cw-eyes-o"), eyes: q(".cw-eyes"), happy: q(".cw-happy"), starry: q(".cw-starry"), shut: q(".cw-shut"),
+            blush: q(".cw-blush"), sweat: q(".cw-sweat"), mouth: q(".cw-mouth"), legs: [...bouncer.querySelectorAll(".leg")],
+            mic: q(".cw-mic"), thermo: q(".cw-thermo"),
+          });
+          gsap.set(rig, { x: o.cx - 120, y: o.by - 200, scale: o.scale, transformOrigin: "50% 100%" });
+          gsap.set(squash, { transformOrigin: "50% 100%" });
+          chars.push(ch);
+          return ch;
+        }
+        const at = (ch, t, cx, by, scale, dur, ease) => {
+          const v = { x: cx - 120, y: by - 200 };
+          if (scale !== undefined && scale !== null) v.scale = scale;
+          if (!dur) tl.set(ch.rig, v, t);
+          else tl.to(ch.rig, Object.assign(v, { duration: dur, ease: ease || "power2.inOut" }), t);
+        };
+        const eyes = (ch, t, mode) => {
+          const m = { normal: [1, 0, 0, 0], happy: [0, 1, 0, 0], star: [0, 0, 1, 0], shut: [0, 0, 0, 1] }[mode];
+          tl.set(ch.eyes, { opacity: m[0] }, t);
+          tl.set(ch.happy, { opacity: m[1] }, t);
+          tl.set(ch.starry, { opacity: m[2] }, t);
+          tl.set(ch.shut, { opacity: m[3] }, t);
+        };
+        const squashHit = (ch, t, k) => {
+          k = k || 1;
+          tl.to(ch.squash, { scaleX: 1 + 0.25 * k, scaleY: 1 - 0.3 * k, duration: 0.07, ease: "power2.out" }, t);
+          tl.to(ch.squash, { scaleX: 1, scaleY: 1, duration: 0.55, ease: "elastic.out(1, 0.35)" }, t + 0.07);
+        };
+        const armTo = (ch, side, t, deg, dur) => {
+          const g = side === "l" ? ch.armLo : ch.armRo;
+          tl.to(g, { rotation: deg, svgOrigin: side === "l" ? "40 94" : "200 94", duration: dur || 0.2, ease: "back.out(2)" }, t);
+        };
+
+        // bounce schedules: [time, amplitude px]
+        function pw(points) {
+          return (t) => {
+            if (t <= points[0][0]) return points[0][1];
+            for (let i = 1; i < points.length; i++) {
+              if (t <= points[i][0]) {
+                const [t0, v0] = points[i - 1], [t1, v1] = points[i];
+                return lerp(v0, v1, (t - t0) / Math.max(t1 - t0, 1e-6));
+              }
+            }
+            return points[points.length - 1][1];
+          };
+        }
+
+        // ---------- Clawd (Claude) ----------
+        const claude = makeChar($("cast"), {
+          color: "#d97757", props: true, voice: "claude", cx: 520, by: -400, scale: 1.6,
+          bounce: pw([[0, 0], [0.9, 0], [1.2, 3], [7.8, 3], [8.2, 5], [15.9, 5], [16.0, 0], [17.5, 0], [17.7, 4], [19.9, 4], [20, 0], [21.6, 0], [21.8, 3], [23.9, 3], [24, 30], [37.9, 30], [38, 8], [40, 5], [47.8, 5], [48, 2], [55.9, 2], [56, 26], [61.9, 26], [62, 6], [64, 3], [67.9, 3], [68, 24], [70, 6], [72, 3]]),
+          dance: pw([[0, 0], [23.9, 0], [24, 1], [37.9, 1], [38, 0], [55.9, 0], [56, 1], [61.9, 1], [62, 0], [67.9, 0], [68, 0.9], [70, 0.2]]),
+        });
+
+        // ---------- lip-sync data: vowel shape per 30fps frame ----------
+        const FPS = S.env.fps, NF = S.env.claude.length;
+        const vshape = new Array(NF).fill("U");
+        const VCLS = (p) => ("aæɑɒɐʌ".includes(p) ? "A" : "oɔuʊ".includes(p) ? "O" : "eɛiɪ".includes(p) ? "E" : "əɚɜᵻ".includes(p) ? "U" : null);
+        for (const ln of S.lines) {
+          if (ln.role === "nbr") continue;
+          for (const s of ln.syllables) {
+            for (let f = Math.floor(s.onset * FPS); f < Math.ceil(s.end * FPS) && f < NF; f++) vshape[f] = s.vclass;
+          }
+        }
+        for (const sp of S.spoken) {
+          for (const ph of sp.phonemes) {
+            const c = VCLS(ph.p);
+            if (!c) continue;
+            for (let f = Math.floor(ph.s * FPS); f < Math.ceil(ph.e * FPS) && f < NF; f++) vshape[f] = c;
+          }
+        }
+        const MOUTH = { A: [1.05, 1.1], E: [1.25, 0.72], O: [0.72, 1.0], U: [0.95, 0.85] };
+        const envAt = (arr, t) => {
+          const x = t * FPS, i = Math.floor(x), k = x - i;
+          const a = arr[clamp(i, 0, arr.length - 1)], b = arr[clamp(i + 1, 0, arr.length - 1)];
+          return lerp(a, b, k);
+        };
+
+        // =========================================================
+        // SCENE 1: intro (0 - 8)
+        // =========================================================
+        (function intro() {
+          // drifting math glyphs
+          const glyphs = ["∂", "∇", "Σ", "x²", "∫", "Δ", "f(x)", "∞", "π", "∂²"];
+          const fl = $("floaties");
+          for (let i = 0; i < 14; i++) {
+            const g = el("div", { class: "floaty", style: `left:${Math.round(rnd() * 1800)}px; top:${Math.round(rnd() * 900)}px; font-size:${Math.round(60 + rnd() * 90)}px` }, fl, glyphs[i % glyphs.length]);
+            tl.fromTo(g, { y: 0, rotation: -10 + rnd() * 20 }, { y: -80 - rnd() * 80, rotation: -20 + rnd() * 40, duration: 8.3, ease: "none", immediateRender: true }, 0);
+          }
+          // Clawd drops in
+          at(claude, 0, 520, -420, 1.6);
+          tl.to(claude.rig, { y: 880 - 200, duration: 0.3, ease: "power2.in" }, 0);
+          squashHit(claude, 0.3, 1.1);
+          eyes(claude, 0, "normal");
+          // wave hello
+          for (let i = 0; i < 4; i++) {
+            armTo(claude, "r", 0.6 + i * 0.28, -55, 0.14);
+            armTo(claude, "r", 0.74 + i * 0.28, -20, 0.14);
+          }
+          armTo(claude, "r", 1.8, 0, 0.3);
+          // speech bubbles
+          const bubbles = [["b1", 0.5, 2.1], ["b2", 2.3, 4.55], ["b3", 4.7, 6.55], ["b4", 6.7, 7.75]];
+          for (const [id, a, b] of bubbles) {
+            gsap.set($(id), { transformOrigin: "0% 50%" });
+            pop(a, $(id), { dur: 0.35 });
+            hide(b, $(id), 0.18);
+          }
+          // title
+          const word = $("intro-word");
+          const letters = "THE LAPLACIAN".split("").map((c) => el("span", {}, word, c === " " ? "&nbsp;" : c));
+          gsap.set($("intro-nabla"), { transformOrigin: "50% 60%" });
+          gsap.set($("intro-nabla"), { scale: 0, rotation: -30, opacity: 0 });
+          tl.to($("intro-nabla"), { scale: 1, rotation: 0, opacity: 1, duration: 0.8, ease: "elastic.out(1, 0.45)" }, 3.28);
+          letters.forEach((l, i) => {
+            gsap.set(l, { y: 60, opacity: 0 });
+            tl.to(l, { y: 0, opacity: 1, duration: 0.35, ease: "back.out(3)" }, 3.45 + i * 0.035);
+          });
+          tl.to($("intro-nabla"), { rotation: 6, duration: 0.5, ease: "sine.inOut", yoyo: true, repeat: 5 }, 4.2);
+          // sparkles around the title
+          const stars = $("intro-stars");
+          for (let i = 0; i < 7; i++) {
+            const a = (i / 7) * Math.PI * 2 + 0.3, r = 260 + rnd() * 60;
+            const s = el("div", { class: "star", style: `left:${1360 + Math.cos(a) * r - 30}px; top:${270 + Math.sin(a) * r * 0.8 - 30}px` }, stars, starSVG(i % 2 ? "#ffd66b" : "#fff8ec", 60));
+            gsap.set(s, { scale: 0, rotation: 0 });
+            tl.to(s, { scale: 1, rotation: 90, duration: 0.4, ease: "back.out(3)" }, 3.3 + i * 0.05);
+            tl.to(s, { scale: 0, rotation: 180, duration: 0.4, ease: "power2.in" }, 4.4 + i * 0.05);
+          }
+          // mic appears ("with a song!")
+          gsap.set(claude.mic, { opacity: 0 });
+          tl.set(claude.mic, { opacity: 1 }, 4.95);
+          tl.fromTo(claude.mic, { scale: 0.2, svgOrigin: "230 70" }, { scale: 1, svgOrigin: "230 70", duration: 0.4, ease: "back.out(3)", immediateRender: false }, 4.95);
+          armTo(claude, "r", 4.95, -35, 0.3);
+          eyes(claude, 4.8, "happy");
+          // "Hit it!"
+          eyes(claude, 6.75, "star");
+          armTo(claude, "l", 6.75, 60, 0.2);
+          squashHit(claude, 6.75, 0.6);
+          tl.to($("intro-title"), { scale: 1.08, duration: 0.12, yoyo: true, repeat: 7, ease: "power1.inOut" }, 7.0);
+          eyes(claude, 7.95, "normal");
+          armTo(claude, "l", 7.95, 0, 0.01);
+          armTo(claude, "r", 7.95, 0, 0.01);
+        })();
+
+        // =========================================================
+        // transitions: colored stripes sweep across at scene cuts
+        // =========================================================
+        const stripeCols = [["#d97757", "#2f9e8c", "#e8b44a"], ["#6fa8e8", "#e0567a", "#fff8ec"], ["#8b7ad8", "#e8b44a", "#d97757"], ["#2f9e8c", "#fff8ec", "#e0567a"]];
+        const stripes = [0, 1, 2].map((i) => el("div", { class: "stripe", style: `left:0; z-index:${i}` }, $("stripes")));
+        stripes.forEach((s) => gsap.set(s, { x: -2700, skewX: -12 }));
+        function wipe(T, palette) {
+          stripes.forEach((s, i) => {
+            tl.set(s, { backgroundColor: palette[i] }, T - 0.45);
+            tl.fromTo(s, { x: -2700 }, { x: -380 + i * 640, duration: 0.34, ease: "power3.in", immediateRender: false }, T - 0.44 + i * 0.03);
+            tl.to(s, { x: 2500, duration: 0.45, ease: "power3.in" }, T + 0.02 + i * 0.05);
+          });
+        }
+        wipe(8.0, stripeCols[0]);
+        wipe(16.0, stripeCols[1]);
+        wipe(40.0, stripeCols[2]);
+        wipe(56.0, stripeCols[3]);
+        gsap.set($("flash"), { opacity: 0 });
+        function flash(t, a, d) {
+          tl.to($("flash"), { opacity: a || 0.9, duration: 0.04 }, t);
+          tl.to($("flash"), { opacity: 0, duration: d || 0.45, ease: "power2.out" }, t + 0.04);
+        }
+
+        // =========================================================
+        // SCENE 2: the stencil grid (8 - 16)
+        // =========================================================
+        const GV = [
+          [9, 8, 8, 7, 8, 9, 9],
+          [8, 7, 6, 6, 7, 8, 9],
+          [7, 6, 5, 3, 7, 8, 9],
+          [8, 7, 6, 8, 7, 8, 8],
+          [9, 8, 7, 7, 8, 8, 9],
+        ];
+        const tileXY = (c, r) => [120 + c * 140 + 64, 90 + r * 140 + 64];
+        (function gridScene() {
+          const grid = $("grid");
+          const heat = (v) => {
+            const k = (v - 3) / 6;
+            const a = [255, 243, 222], b = [226, 128, 92];
+            return `rgb(${Math.round(lerp(a[0], b[0], k))},${Math.round(lerp(a[1], b[1], k))},${Math.round(lerp(a[2], b[2], k))})`;
+          };
+          const tiles = {};
+          GV.forEach((row, r) => row.forEach((v, c) => {
+            const t = el("div", { class: "tile", style: `left:${c * 140}px; top:${r * 140}px; background:${heat(v)}` }, grid, `<div class="v">${v}</div><div class="w"></div>`);
+            tiles[`${c},${r}`] = t;
+            const d = Math.hypot(c - 3, r - 2);
+            gsap.set(t, { scale: 0, opacity: 0 });
+            tl.to(t, { scale: 1, opacity: 1, duration: 0.35, ease: "back.out(2)" }, 8.05 + d * 0.09);
+          }));
+          // Clawd hops onto the centre tile
+          at(claude, 7.98, 604, 480, 0.56);
+          tl.set(claude.squash, { scaleX: 1, scaleY: 1 }, 7.98);
+          tl.fromTo(claude.rig, { y: 480 - 200 - 260 }, { y: 480 - 200, duration: 0.42, ease: "bounce.out", immediateRender: false }, 8.02);
+          const ring = $("ring");
+          const [cx, cy] = tileXY(3, 2);
+          gsap.set(ring, { left: cx - 85, top: cy - 85, scale: 0, opacity: 0 });
+          tl.to(ring, { scale: 1, opacity: 1, duration: 0.3, ease: "back.out(3)" }, 8.5);
+          tl.to(ring, { scale: 1.15, duration: 0.25, yoyo: true, repeat: 5, ease: "sine.inOut" }, 8.8);
+          // look around
+          tl.to(claude.eyesO, { x: -14, duration: 0.15 }, 9.0);
+          tl.to(claude.eyesO, { x: 14, duration: 0.2 }, 9.3);
+          tl.to(claude.eyesO, { x: 0, y: -8, duration: 0.2 }, 9.65);
+          tl.to(claude.eyesO, { x: 0, y: 0, duration: 0.2 }, 10.2);
+          // neighbours pop up on N/E/S/W
+          const cast = $("grid-cast");
+          const nb = [
+            { k: "4,2", color: "#6fa8e8", t: 10.5, name: "E" },
+            { k: "3,1", color: "#2f9e8c", t: 10.625, name: "N" },
+            { k: "2,2", color: "#e8b44a", t: 10.75, name: "W" },
+            { k: "3,3", color: "#e57a96", t: 10.875, name: "S" },
+          ];
+          nb.forEach((n, i) => {
+            const [c, r] = n.k.split(",").map(Number);
+            const [x, y] = tileXY(c, r);
+            n.ch = makeChar(cast, { color: n.color, cx: x, by: y + 50, scale: 0.46, phase: i * 0.21, bounce: pw([[0, 3]]), win: [8, 16.3] });
+            gsap.set(n.ch.squash, { scale: 0 });
+            tl.to(n.ch.squash, { scale: 1, duration: 0.4, ease: "back.out(3)" }, n.t);
+            tl.set(tiles[n.k], { borderColor: "#2f9e8c" }, n.t);
+            eyes(n.ch, 0, "normal");
+            eyes(n.ch, 10.9, "happy");
+            eyes(n.ch, 12.2, "normal");
+          });
+          // numbers fly into the panel
+          const panel = $("panel");
+          gsap.set(panel, { x: 900, rotation: 4 });
+          tl.to(panel, { x: 0, rotation: -1, duration: 0.55, ease: "back.out(1.4)" }, 11.4);
+          ["pr1", "pr2", "pr3", "pr4"].forEach((id) => gsap.set($(id), { opacity: 0, x: 30 }));
+          tl.to($("pr1"), { opacity: 1, x: 0, duration: 0.3 }, 11.9);
+          const fly = $("flyers");
+          const vals = [["N", 6, "#2f9e8c"], ["E", 7, "#6fa8e8"], ["W", 5, "#e8b44a"], ["S", 8, "#e57a96"]];
+          const fromK = { N: "3,1", E: "4,2", W: "2,2", S: "3,3" };
+          vals.forEach(([nm, v, col], i) => {
+            const [x, y] = tileXY(...fromK[nm].split(",").map(Number));
+            const f = el("div", { class: "chip flyer", style: `left:0; top:0; background:${col}; color:#fff` }, fly, String(v));
+            gsap.set(f, { x: x + 24, y: y + 20, scale: 0, opacity: 0 });
+            tl.to(f, { scale: 1, opacity: 1, duration: 0.15 }, 12.0 + i * 0.12);
+            tl.to(f, { x: 1440 + i * 92, y: 206, duration: 0.55, ease: "power3.inOut" }, 12.05 + i * 0.12);
+          });
+          tl.to($("pr2"), { opacity: 1, x: 0, duration: 0.3 }, 12.9);
+          tl.fromTo($("pr2").querySelector(".hl"), { scale: 1 }, { scale: 1.3, duration: 0.15, yoyo: true, repeat: 1, immediateRender: false }, 13.0);
+          // "then subtract the middle spot": stencil weights on the tiles
+          nb.forEach((n) => {
+            const w = tiles[n.k].querySelector(".w");
+            w.textContent = "+1"; w.style.color = "#2f9e8c";
+            gsap.set(w, { scale: 0 });
+            tl.to(w, { scale: 1, duration: 0.3, ease: "back.out(3)" }, 14.0);
+          });
+          const wc = tiles["3,2"].querySelector(".w");
+          wc.textContent = "−4"; wc.style.color = "#e0567a";
+          wc.style.top = "auto"; wc.style.bottom = "-34px"; wc.style.left = "-20px";
+          gsap.set(wc, { scale: 0 });
+          tl.to(wc, { scale: 1, duration: 0.3, ease: "back.out(3)" }, 14.6);
+          tl.to($("pr3"), { opacity: 1, x: 0, duration: 0.3 }, 14.1);
+          tex($("stencil-tex"), String.raw`\nabla^2 f \approx \dfrac{f_E + f_W + f_N + f_S - 4f}{h^2}`);
+          gsap.set($("stencil-tex"), { opacity: 0, y: 20 });
+          tl.to($("stencil-tex"), { opacity: 1, y: 0, duration: 0.4 }, 14.6);
+          tl.fromTo($("pr3-res"), { scale: 1 }, { scale: 1.45, duration: 0.18, yoyo: true, repeat: 1, ease: "power2.out", immediateRender: false }, 15.5);
+          tl.to($("pr4"), { opacity: 1, x: 0, duration: 0.3 }, 15.5);
+          eyes(claude, 15.5, "happy");
+          eyes(claude, 15.95, "normal");
+        })();
+
+        // =========================================================
+        // SCENE 3: valley and peak (16 - 24)
+        // =========================================================
+        const G = (x, m, s) => Math.exp(-(((x - m) / s) ** 2));
+        const fy = (x) => 640 + 190 * G(x, 560, 210) - 250 * G(x, 1360, 220);
+        const slope = (x) => (fy(x + 1) - fy(x - 1)) / 2;
+        (function curveScene() {
+          const svg = $("curve-svg");
+          const defs = svgEl("defs", {}, svg);
+          const gr = svgEl("linearGradient", { id: "ground", x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
+          svgEl("stop", { offset: "0", "stop-color": "#f2c38b" }, gr);
+          svgEl("stop", { offset: "1", "stop-color": "#d97757" }, gr);
+          let d = "M0 1080 L0 " + fy(0).toFixed(1);
+          let line = "M0 " + fy(0).toFixed(1);
+          for (let x = 0; x <= 1920; x += 10) { d += ` L${x} ${fy(x).toFixed(1)}`; line += ` L${x} ${fy(x).toFixed(1)}`; }
+          d += " L1920 1080 Z";
+          const ground = svgEl("path", { d, fill: "url(#ground)" }, svg);
+          const edge = svgEl("path", { d: line, fill: "none", stroke: INK, "stroke-width": 8, "stroke-linecap": "round" }, svg);
+          const L = 2300;
+          gsap.set(edge, { strokeDasharray: L, strokeDashoffset: L });
+          tl.to(edge, { strokeDashoffset: 0, duration: 0.6, ease: "power2.out" }, 16.0);
+          gsap.set(ground, { opacity: 0 });
+          tl.to(ground, { opacity: 1, duration: 0.4 }, 16.1);
+          // construction helper: neighbours at +-h, chord, midpoint, bracket
+          function construct(x0, h, t, color, sign) {
+            const g = svgEl("g", { opacity: 0 }, svg);
+            const y0 = fy(x0), ya = fy(x0 - h), yb = fy(x0 + h), ym = (ya + yb) / 2;
+            svgEl("line", { x1: x0 - h, y1: ya, x2: x0 + h, y2: yb, stroke: INK, "stroke-width": 5, "stroke-dasharray": "16 12" }, g);
+            svgEl("line", { x1: x0, y1: y0, x2: x0, y2: ym, stroke: color, "stroke-width": 6, "stroke-dasharray": "4 10", "stroke-linecap": "round" }, g);
+            for (const [x, y] of [[x0 - h, ya], [x0 + h, yb]]) svgEl("circle", { cx: x, cy: y, r: 17, fill: "#fff8ec", stroke: INK, "stroke-width": 6 }, g);
+            svgEl("circle", { cx: x0, cy: ym, r: 20, fill: color, stroke: INK, "stroke-width": 6 }, g);
+            const bx = x0 + 150;
+            const br = svgEl("path", { d: `M${bx} ${y0} h18 V${ym} h-18`, fill: "none", stroke: color, "stroke-width": 10, "stroke-linecap": "round", "stroke-linejoin": "round" }, g);
+            const lb = svgEl("text", { x: x0 + 70, y: ym + (sign > 0 ? -34 : 64), "text-anchor": "middle", "font-family": "Fredoka", "font-weight": 600, "font-size": 34, fill: INK }, g);
+            lb.textContent = "average of neighbors";
+            const pl = svgEl("text", { x: bx + 36, y: (y0 + ym) / 2 + 30, "font-family": "Nunito", "font-weight": 900, "font-size": 86, fill: color, stroke: INK, "stroke-width": 5, "paint-order": "stroke" }, g);
+            pl.textContent = sign > 0 ? "+" : "−";
+            pl.setAttribute("fill", sign > 0 ? "#1c5d52" : "#8f2440");
+            tl.to(g, { opacity: 1, duration: 0.3 }, t);
+            return g;
+          }
+          // slide down into the valley
+          const kf = (x0, x1, n) => {
+            const out = [];
+            for (let i = 1; i <= n; i++) {
+              const k = i / n, e = k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2;
+              const x = lerp(x0, x1, e);
+              out.push({ x: x - 120, y: fy(x) - 200, rotation: (Math.atan(slope(x)) * 180) / Math.PI * 0.8 });
+            }
+            return out;
+          };
+          at(claude, 15.98, 140, fy(140), 0.62);
+          tl.set(claude.rig, { rotation: 0 }, 15.98);
+          const down = kf(140, 560, 14);
+          down.forEach((k, i) => tl.to(claude.rig, Object.assign(k, { duration: 1.45 / 14, ease: "none" }), 16.05 + (i * 1.45) / 14));
+          eyes(claude, 16.05, "happy");
+          tl.to(claude.rig, { rotation: 0, duration: 0.25, ease: "back.out(2)" }, 17.5);
+          squashHit(claude, 17.5, 0.5);
+          eyes(claude, 17.7, "normal");
+          construct(560, 260, 18.0, "#2f9e8c", +1);
+          pop(19.0, $("badge-plus"));
+          pop(19.1, $("cap-plus"));
+          tl.to($("badge-plus"), { rotation: 360, duration: 0.6, ease: "back.out(1.5)" }, 19.0);
+          // climb to the peak
+          const up = kf(560, 1360, 18);
+          up.forEach((k, i) => tl.to(claude.rig, Object.assign(k, { duration: 1.55 / 18, ease: "none" }), 20.05 + (i * 1.55) / 18));
+          tl.to(claude.rig, { rotation: 0, duration: 0.25 }, 21.6);
+          construct(1360, 260, 22.0, "#e0567a", -1);
+          pop(23.0, $("badge-minus"));
+          pop(23.1, $("cap-minus"));
+          tl.to($("badge-minus"), { rotation: -20, duration: 0.12, yoyo: true, repeat: 3 }, 23.2);
+          tl.to(claude.sweat, { opacity: 1, duration: 0.1 }, 22.4);
+          tl.to(claude.sweat, { opacity: 0, duration: 0.1 }, 23.9);
+          tl.to(claude.rig, { rotation: -6, duration: 0.18, yoyo: true, repeat: 5, ease: "sine.inOut" }, 22.6);
+          tl.set(claude.rig, { rotation: 0 }, 23.95);
+        })();
+
+        // =========================================================
+        // SCENE 4: chorus (24 - 40)
+        // =========================================================
+        (function chorusScene() {
+          flash(24.0, 0.95, 0.5);
+          at(claude, 23.99, 960, 900, 1.9);
+          eyes(claude, 24.0, "happy");
+          tl.fromTo($("ch-rays"), { rotation: 0 }, { rotation: 90, duration: 16.3, ease: "none", immediateRender: true }, 24.0);
+          // kinetic "LA-PLA-CI-AN!"
+          const kin = $("ch-kin");
+          function hook(t0, y, cols) {
+            // syllable timing from the sung line starting near t0
+            const ln = S.lines.find((l) => l.role === "lead" && Math.abs(l.syllables[0].start - t0) < 0.3);
+            const parts = ["LA", "PLA", "CI", "AN!"];
+            const xs = [300, 620, 1020, 1330];
+            const nodes = parts.map((p, i) => el("div", { class: "kin", style: `left:${xs[i]}px; top:${y}px; color:${cols[i]}` }, kin, p));
+            nodes.forEach((n, i) => {
+              const s = ln.syllables[i].start;
+              gsap.set(n, { scale: 0, rotation: -25 + i * 14, opacity: 0, transformOrigin: "50% 80%" });
+              tl.to(n, { scale: 1, rotation: -6 + i * 4, opacity: 1, duration: 0.3, ease: "back.out(3)" }, s);
+            });
+            const end = ln.syllables[3].end;
+            nodes.forEach((n, i) => {
+              tl.to(n, { x: [300, 70, -210, -420][i] * 0.55, y: -40, scale: 0.72, rotation: 0, duration: 0.28, ease: "power3.in" }, end - 0.05);
+              tl.to(n, { opacity: 0, duration: 0.15 }, end + 0.25);
+            });
+          }
+          hook(23.75, 120, ["#fff8ec", "#ffd66b", "#bff0e6", "#ffc1d0"]);
+          // neighbours: "nabla squared!"
+          const cast = $("ch-cast");
+          const nbDefs = [["#2f9e8c", 330], ["#6fa8e8", 1590], ["#e8b44a", 560], ["#e57a96", 1360]];
+          const minis = nbDefs.map(([c, x], i) => makeChar(cast, { color: c, cx: x, by: 900, scale: 0.8, phase: i * 0.13, bounce: pw([[24, 14], [37.9, 14], [38, 4]]), dance: pw([[24, 1], [37.9, 1], [38, 0]]), win: [24, 40.3] }));
+          minis.forEach((m, i) => {
+            gsap.set(m.rig, { y: 900 - 200 + 420 });
+            tl.to(m.rig, { y: 900 - 200, duration: 0.45, ease: "back.out(1.8)" }, 26.0 + (i % 3) * 0.125);
+            eyes(m, 26.0, "happy");
+          });
+          function nablaStamp(t, top) {
+            const n = el("div", { class: "kin nabla", style: `left:760px; top:${top}px; font-size:230px; color:#bff0e6` }, kin, "∇²");
+            gsap.set(n, { scale: 3, opacity: 0, rotation: -20 });
+            tl.to(n, { scale: 1, opacity: 1, rotation: 0, duration: 0.25, ease: "power4.in" }, t);
+            tl.to(n, { scale: 1.2, opacity: 0, duration: 0.3 }, t + 1.3);
+          }
+          nablaStamp(26.0, 160);
+          // formula card
+          tex($("fp0"), String.raw`\nabla^2 f \;=`);
+          tex($("fp1"), String.raw`\frac{\partial^2 f}{\partial x^2}`);
+          tex($("fp2"), "+");
+          tex($("fp3"), String.raw`\frac{\partial^2 f}{\partial y^2}`);
+          const fcard = $("formula");
+          gsap.set(fcard, { y: -320 });
+          tl.to(fcard, { y: 0, duration: 0.5, ease: "back.out(1.4)" }, 27.85);
+          ["fp0", "fp1", "fp2", "fp3"].forEach((id, i) => {
+            gsap.set($(id), { opacity: 0, scale: 0.5 });
+            tl.to($(id), { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2.5)" }, [28.0, 28.5, 29.25, 29.5][i]);
+          });
+          // "f-x-x plus f-y-y": highlight each second derivative
+          const hl = (id, t, col) => {
+            tl.to($(id), { backgroundColor: col, scale: 1.12, duration: 0.15 }, t);
+            tl.to($(id), { scale: 1, duration: 0.3 }, t + 0.15);
+          };
+          hl("fp1", 30.0, "#bff0e6");
+          hl("fp3", 31.0, "#ffe0a3");
+          ["icon-x", "icon-y"].forEach((id, i) => {
+            gsap.set($(id), { opacity: 0, y: -30 });
+            tl.to($(id), { opacity: 1, y: 0, duration: 0.3, ease: "back.out(2)" }, 30.0 + i);
+          });
+          const iy = $("icon-y");
+          gsap.set(iy, { rotation: 0 });
+          tl.to([$("icon-x"), $("icon-y")], { opacity: 0, duration: 0.3 }, 31.6);
+          tl.to(fcard, { y: -40, scale: 0.72, duration: 0.4, ease: "power2.inOut" }, 31.6);
+          hook(31.75, 330, ["#ffd66b", "#fff8ec", "#ffc1d0", "#bff0e6"]);
+          flash(32.0, 0.5, 0.35);
+          nablaStamp(34.0, 250);
+          minis.forEach((m, i) => { squashHit(m, 34.0 + (i % 3) * 0.125, 0.8); });
+          // "It's the average of your neighbours..."
+          const band = $("avg-band");
+          gsap.set(band, { opacity: 0, scale: 0.6 });
+          tl.to(band, { opacity: 1, scale: 1, duration: 0.35, ease: "back.out(2)" }, 36.0);
+          minis.forEach((m, i) => {
+            armTo(m, "l", 36.2 + i * 0.25, 70, 0.2);
+            armTo(m, "r", 36.2 + i * 0.25, -70, 0.2);
+          });
+          tl.to(band, { opacity: 0, y: -60, duration: 0.25 }, 37.9);
+          // "...minus YOU!"
+          tl.to(fcard, { opacity: 0, duration: 0.2 }, 37.9);
+          minis.forEach((m, i) => tl.to(m.rig, { y: 900 - 200 + 460, duration: 0.3, ease: "power2.in" }, 37.85 + i * 0.03));
+          tl.to(claude.rig, { x: 700 - 120, y: 950 - 200, scale: 2.4, duration: 0.3, ease: "power3.out" }, 38.0);
+          armTo(claude, "r", 38.0, -80, 0.2);
+          eyes(claude, 38.0, "star");
+          const you = $("you-text");
+          gsap.set(you, { opacity: 0, scale: 2.5, rotation: 10 });
+          tl.to(you, { opacity: 1, scale: 1, rotation: -4, duration: 0.3, ease: "power4.in" }, 38.0);
+          tl.to(you, { x: 8, duration: 0.05, yoyo: true, repeat: 9 }, 38.35);
+          gsap.set($("footnote"), { opacity: 0 });
+          tl.to($("footnote"), { opacity: 1, duration: 0.3 }, 38.5);
+          minis.forEach((m) => { armTo(m, "l", 37.9, 0, 0.2); armTo(m, "r", 37.9, 0, 0.2); eyes(m, 38.0, "normal"); });
+          armTo(claude, "r", 39.9, 0, 0.01);
+        })();
+
+        // =========================================================
+        // SCENE 5: heat = peer pressure (40 - 48)
+        // =========================================================
+        const HEAT = { blobs: [[0.28, 0.42, 1.0, 0.13], [0.72, 0.6, -1.0, 0.13], [0.55, 0.18, 0.55, 0.08], [0.14, 0.82, -0.5, 0.08], [0.9, 0.2, 0.45, 0.08], [0.5, 0.85, -0.35, 0.07]] };
+        const tauOf = (t) => 0.013 * Math.pow(clamp((t - 40.8) / 6.9, 0, 1), 1.25);
+        (function heatScene() {
+          at(claude, 39.99, 1715, 885, 0.95);
+          eyes(claude, 40.0, "normal");
+          gsap.set(claude.thermo, { opacity: 0 });
+          tl.set(claude.thermo, { opacity: 1 }, 40.0);
+          tl.set(claude.mic, { opacity: 0 }, 40.0);
+          armTo(claude, "l", 40.0, 25, 0.3);
+          // two characters: a hot one and a cold one
+          const cast = $("heat-cast");
+          const X = (u) => 190 + 8 + u * 1284, Y = (v) => 150 + 8 + v * 715;
+          const hot = makeChar(cast, { color: "#e0453b", cx: X(0.28), by: Y(0.42) + 80, scale: 0.75, phase: 0.1, bounce: pw([[0, 4]]), win: [40, 48.6] });
+          const cold = makeChar(cast, { color: "#4b7fe0", cx: X(0.72), by: Y(0.6) + 80, scale: 0.75, phase: 0.4, bounce: pw([[0, 4]]), win: [40, 48.6] });
+          cold.shiver = [41.0, 45.5];
+          hot.sweatWin = [40.5, 45.0];
+          tl.set(hot.sweat, { opacity: 1 }, 40.5);
+          tl.set(hot.sweat, { opacity: 0 }, 45.0);
+          [hot, cold].forEach((c) => {
+            tl.to(c.body, { attr: { fill: "#e3a07e" }, duration: 3.6, ease: "sine.inOut" }, 42.4);
+            c.legs.forEach((l) => tl.to(l, { attr: { fill: "#e3a07e" }, duration: 3.6, ease: "sine.inOut" }, 42.4));
+            c.bouncer.querySelectorAll(".cw-arm-l rect, .cw-arm-r rect").forEach((a) => tl.to(a, { attr: { fill: "#e3a07e" }, duration: 3.6, ease: "sine.inOut" }, 42.4));
+            eyes(c, 46.0, "happy");
+          });
+          const lh = $("lbl-hot"), lc = $("lbl-cold");
+          gsap.set(lh, { left: X(0.28) - 190, top: Y(0.42) - 210 });
+          gsap.set(lc, { left: X(0.72) - 210, top: Y(0.6) - 220 });
+          pop(42.0, lh);
+          pop(43.0, lc);
+          tl.to([lh, lc], { opacity: 0, duration: 0.3 }, 45.6);
+          gsap.set($("lbl-peer"), { opacity: 0 });
+          tl.to($("lbl-peer"), { opacity: 1, duration: 0.4 }, 45.8);
+          // the equation
+          tex($("hp0"), String.raw`\frac{\partial u}{\partial t}`);
+          tex($("hp1"), "=");
+          tex($("hp2"), String.raw`\nabla^2 u`);
+          const card = $("heat-eq");
+          gsap.set(card, { y: -200 });
+          tl.to(card, { y: 0, duration: 0.45, ease: "back.out(1.5)" }, 43.9);
+          const lightUp = (id, t, col) => {
+            tl.to($(id), { backgroundColor: col, scale: 1.15, duration: 0.15 }, t);
+            tl.to($(id), { scale: 1, duration: 0.3 }, t + 0.15);
+          };
+          lightUp("hp0", 44.0, "#ffe0a3");
+          lightUp("hp1", 45.0, "#fff");
+          lightUp("hp2", 46.0, "#bff0e6");
+          tl.to([card, $("lbl-peer")], { opacity: 0, duration: 0.3 }, 47.7);
+        })();
+
+        // =========================================================
+        // SCENE 6: harmonic (48 - 56)
+        // =========================================================
+        (function harmScene() {
+          gsap.set($("harm-inner"), { opacity: 0 });
+          tl.to($("harm-inner"), { opacity: 1, duration: 0.5 }, 47.7);
+          at(claude, 48.1, 190, 905, 0.8);
+          tl.set(claude.thermo, { opacity: 0 }, 48.1);
+          armTo(claude, "l", 48.1, 0, 0.01);
+          eyes(claude, 48.1, "shut");
+          eyes(claude, 51.9, "normal");
+          // stars
+          for (let i = 0; i < 40; i++) {
+            el("div", { class: "twinkle", style: `left:${Math.round(rnd() * 1920)}px; top:${Math.round(rnd() * 560)}px; opacity:${(0.3 + rnd() * 0.6).toFixed(2)}` }, $("harm-stars"));
+          }
+          tex($("harm-title"), String.raw`\nabla^2 f = 0`);
+          pop(48.0, $("harm-title"), { dur: 0.6, ease: "elastic.out(1,0.5)" });
+          gsap.set($("harm-sub"), { opacity: 0, y: 20 });
+          tl.to($("harm-sub"), { opacity: 1, y: 0, duration: 0.4 }, 49.8);
+          const sc = $("surf-canvas");
+          gsap.set(sc, { opacity: 0, scale: 0.9 });
+          tl.to(sc, { opacity: 1, scale: 1, duration: 0.6 }, 48.2);
+          tl.to(sc, { scale: 0.62, y: -130, duration: 0.5, ease: "power2.inOut" }, 51.7);
+          tl.to($("harm-sub"), { opacity: 0, duration: 0.3 }, 51.7);
+          // application cards
+          [["card-soap", 52.0], ["card-heat", 52.5], ["card-field", 54.75]].forEach(([id, t]) => {
+            gsap.set($(id), { y: 640, rotation: 8 });
+            tl.to($(id), { y: 0, rotation: -2, duration: 0.45, ease: "back.out(1.6)" }, t - 0.05);
+          });
+          tl.to($("card-field"), { x: 6, duration: 0.04, yoyo: true, repeat: 7 }, 54.8);
+          // steady heat plate (linear gradient = harmonic in 1D)
+          $("steady-plate").style.background = "linear-gradient(90deg, #e0453b 0%, #f29a6b 30%, #f4e6d0 55%, #8ec1f0 80%, #3b6fd9 100%)";
+          // electric field lines between + and -
+          const fs = $("field-svg");
+          const P = [140, 140], M = [300, 140];
+          for (let k = -4; k <= 4; k++) {
+            const a = (k / 5) * Math.PI;
+            const sx = P[0] + 26 * Math.cos(a), sy = P[1] + 26 * Math.sin(a);
+            const ex = M[0] - 26 * Math.cos(a), ey = M[1] + 26 * Math.sin(a);
+            const bulge = 120 * Math.sin(a);
+            svgEl("path", { d: `M${sx} ${sy} C${sx + 60} ${sy + bulge * 1.4}, ${ex - 60} ${ey + bulge * 1.4}, ${ex} ${ey}`, fill: "none", stroke: "#8b7ad8", "stroke-width": 4 }, fs);
+          }
+          for (const [c, s, col] of [[P, "+", "#e0567a"], [M, "−", "#3b6fd9"]]) {
+            svgEl("circle", { cx: c[0], cy: c[1], r: 30, fill: col, stroke: INK, "stroke-width": 5 }, fs);
+            const tx = svgEl("text", { x: c[0], y: c[1] + 16, "text-anchor": "middle", "font-family": "Nunito", "font-weight": 900, "font-size": 48, fill: "#fff" }, fs);
+            tx.textContent = s;
+          }
+          flash(55.97, 0.9, 0.4);
+        })();
+
+        // =========================================================
+        // SCENE 7: final chorus — the stencil, performed (56 - 64)
+        // =========================================================
+        (function finalScene() {
+          at(claude, 55.99, 960, 610, 1.08);
+          eyes(claude, 56.0, "happy");
+          tl.fromTo($("fin-rays"), { rotation: 0 }, { rotation: -70, duration: 8.4, ease: "none", immediateRender: true }, 56.0);
+          // background crowd
+          const crowd = $("fin-crowd");
+          const cols = ["#2f9e8c", "#6fa8e8", "#e8b44a", "#e57a96", "#8b7ad8", "#f2a58a"];
+          for (let r = 0; r < 2; r++) {
+            for (let i = 0; i < 9; i++) {
+              const x = 110 + i * 212 + (r ? 106 : 0);
+              if (r === 1 && i === 8) continue;
+              makeChar(crowd, { color: cols[(i + r * 2) % 6], cx: x, by: 300 + r * 90, scale: 0.34, phase: (i * 0.37 + r * 0.5) % 1, bounce: pw([[56, 10], [61.9, 10], [62, 2]]), dance: pw([[56, 1], [61.9, 1], [62, 0]]), win: [56, 64.4] });
+            }
+          }
+          gsap.set(crowd, { opacity: 0.55 });
+          // the plus-shaped stencil glow
+          const pg = $("plus-glow");
+          const glow = svgEl("path", { d: "M960 330 V830 M540 610 H1380", stroke: "#fff8ec", "stroke-width": 120, "stroke-linecap": "round", opacity: 0.25 }, pg);
+          gsap.set(glow, { opacity: 0 });
+          tl.to(glow, { opacity: 0.3, duration: 0.4 }, 56.2);
+          const cast = $("fin-cast");
+          const spots = [[960, 400, "#2f9e8c"], [1380, 610, "#6fa8e8"], [540, 610, "#e8b44a"], [960, 840, "#e57a96"]];
+          const nb = spots.map(([x, y, c], i) => makeChar(cast, { color: c, cx: x, by: y, scale: 0.78, phase: i * 0.25, bounce: pw([[56, 22], [61.9, 22], [62, 3]]), dance: pw([[56, 1], [59.9, 1], [60, 0]]), win: [56, 64.4] }));
+          nb.forEach((m, i) => {
+            gsap.set(m.squash, { scale: 0 });
+            tl.to(m.squash, { scale: 1, duration: 0.4, ease: "back.out(2.5)" }, 56.1 + i * 0.1);
+            eyes(m, 56.1, "happy");
+            squashHit(m, 58.0 + (i % 3) * 0.125, 0.9);
+          });
+          // kinetic title pulses on each hook syllable
+          const ft = $("fin-title");
+          gsap.set(ft, { scale: 0, opacity: 0 });
+          const hookLine = S.lines.find((l) => l.id === "f1a");
+          hookLine.syllables.forEach((s, i) => {
+            if (i === 0) tl.to(ft, { scale: 1, opacity: 1, duration: 0.25, ease: "back.out(3)" }, s.start);
+            else tl.fromTo(ft, { scale: 1.12 }, { scale: 1, duration: 0.3, ease: "power2.out", immediateRender: false }, s.start);
+          });
+          tl.to(ft, { y: -30, scale: 0.8, duration: 0.3 }, 59.8);
+          // +1 badges (one per syllable of "It's the average of your neighbors")
+          const bw = $("fin-badges");
+          const f1c = S.lines.find((l) => l.id === "f1c");
+          nb.forEach((m, i) => {
+            const off = [[110, -170], [-65, -262], [-65, -262], [110, -170]][i];
+            const b = el("div", { class: "wbadge", style: `left:${spots[i][0] + off[0]}px; top:${spots[i][1] + off[1]}px; color:#2f9e8c` }, bw, "+1");
+            gsap.set(b, { scale: 0, opacity: 0 });
+            const t = f1c.syllables[[2, 4, 6, 7][i]].start;
+            tl.to(b, { scale: 1, opacity: 1, duration: 0.3, ease: "back.out(3)" }, t);
+            armTo(m, "l", t, 80, 0.2);
+            armTo(m, "r", t, -80, 0.2);
+          });
+          const me = el("div", { class: "wbadge", style: "left:1112px; top:430px; color:#e0567a" }, bw, "−4");
+          gsap.set(me, { scale: 0, opacity: 0 });
+          tl.to(me, { scale: 1.25, opacity: 1, duration: 0.3, ease: "back.out(3)" }, 62.0);
+          tl.to(me, { scale: 1.05, duration: 0.4, yoyo: true, repeat: 2 }, 62.3);
+          // spotlight on "minus YOU"
+          gsap.set($("spot"), { opacity: 0 });
+          tl.to($("spot"), { opacity: 1, duration: 0.25 }, 62.0);
+          tl.to(claude.blush, { opacity: 1, duration: 0.2 }, 62.1);
+          eyes(claude, 62.0, "star");
+          armTo(claude, "l", 62.1, 45, 0.2);
+          armTo(claude, "r", 62.1, -45, 0.2);
+          // night falls
+          gsap.set($("tag-inner"), { opacity: 0 });
+          tl.to($("tag-inner"), { opacity: 1, duration: 0.6 }, 63.7);
+        })();
+
+        // =========================================================
+        // SCENE 8: tag — "and when it's zero… HARMONIC!" (64 - 72)
+        // =========================================================
+        (function tagScene() {
+          at(claude, 64.2, 960, 880, 1.15);
+          tl.set(claude.blush, { opacity: 0 }, 64.2);
+          armTo(claude, "l", 64.2, 0, 0.01);
+          armTo(claude, "r", 64.2, 0, 0.01);
+          eyes(claude, 64.2, "normal");
+          tl.to(claude.eyesO, { y: -10, duration: 0.4 }, 64.3);
+          tl.to(claude.eyesO, { y: 0, duration: 0.3 }, 67.9);
+          for (let i = 0; i < 70; i++) {
+            el("div", { class: "twinkle", style: `left:${Math.round(rnd() * 1920)}px; top:${Math.round(rnd() * 700)}px; opacity:${(0.25 + rnd() * 0.7).toFixed(2)}; transform: scale(${(0.5 + rnd()).toFixed(2)})` }, $("tag-stars"));
+          }
+          gsap.set($("tag-sun"), { opacity: 0 });
+          tl.to($("tag-sun"), { opacity: 1, duration: 0.25 }, 68.0);
+          tl.to($("tag-stars"), { opacity: 0, duration: 0.3 }, 68.0);
+          tex($("tag-eq"), String.raw`\nabla^2 f = 0`);
+          gsap.set($("tag-eq"), { opacity: 0, scale: 0.8 });
+          tl.to($("tag-eq"), { opacity: 1, scale: 1, duration: 1.2, ease: "sine.out" }, 64.4);
+          tl.to($("tag-eq"), { opacity: 0, scale: 1.3, duration: 0.2 }, 67.9);
+          const cast = $("tag-cast");
+          const row = [[520, "#2f9e8c"], [730, "#6fa8e8"], [1190, "#e8b44a"], [1400, "#e57a96"]];
+          const nb = row.map(([x, c], i) => makeChar(cast, { color: c, cx: x, by: 880, scale: 0.72, phase: i * 0.2, singAlong: [65.9, 69.0], bounce: pw([[64, 2], [67.9, 2], [68, 18], [70, 4]]), dance: pw([[64, 0], [67.9, 0], [68, 0.9], [70, 0.2]]), win: [63.7, 72] }));
+          nb.forEach((m, i) => {
+            gsap.set(m.squash, { scale: 0 });
+            tl.to(m.squash, { scale: 1, duration: 0.4, ease: "back.out(2)" }, 64.3 + i * 0.12);
+            tl.to(m.eyesO, { y: -10, duration: 0.4 }, 64.5);
+            tl.to(m.eyesO, { y: 0, duration: 0.3 }, 67.9);
+            eyes(m, 66.0, "shut");
+            eyes(m, 68.0, "star");
+            eyes(m, 69.2, "happy");
+            squashHit(m, 68.0, 1.0);
+          });
+          eyes(claude, 66.0, "shut");
+          eyes(claude, 68.0, "star");
+          eyes(claude, 69.2, "happy");
+          squashHit(claude, 68.0, 1.0);
+          // floating notes while "har-mooo-" is held
+          const notes = $("tag-notes");
+          for (let i = 0; i < 9; i++) {
+            const n = el("div", { class: "note", style: `left:${400 + i * 130}px; top:700px` }, notes, noteSVG(["#ffd66b", "#bff0e6", "#ffc1d0"][i % 3]));
+            gsap.set(n, { opacity: 0, y: 0, rotation: -15 + rnd() * 30 });
+            tl.to(n, { opacity: 1, duration: 0.2 }, 66.0 + i * 0.18);
+            tl.to(n, { y: -420 - rnd() * 160, x: -60 + rnd() * 120, rotation: -30 + rnd() * 60, duration: 2.2, ease: "sine.out" }, 66.0 + i * 0.18);
+            tl.to(n, { opacity: 0, duration: 0.3 }, 67.85 + i * 0.04);
+          }
+          // HARMONIC!
+          const tt = $("tag-title");
+          gsap.set(tt, { scale: 0, opacity: 0, rotation: -8 });
+          tl.to(tt, { scale: 1, opacity: 1, rotation: 0, duration: 0.5, ease: "elastic.out(1, 0.5)" }, 68.0);
+          flash(68.0, 0.85, 0.5);
+          // confetti
+          const cf = $("confetti");
+          const ccols = ["#d97757", "#2f9e8c", "#e8b44a", "#6fa8e8", "#e0567a", "#8b7ad8", "#fff8ec"];
+          for (let i = 0; i < 90; i++) {
+            const c = el("div", { class: "confetti", style: `left:960px; top:560px; background:${ccols[i % 7]}` }, cf);
+            const a = -Math.PI / 2 + (rnd() - 0.5) * 2.4, v = 500 + rnd() * 900;
+            gsap.set(c, { opacity: 0 });
+            tl.set(c, { opacity: 1 }, 68.0);
+            tl.to(c, { x: Math.cos(a) * v, y: Math.sin(a) * v * 0.8, rotation: rnd() * 720, duration: 0.9, ease: "power3.out" }, 68.0);
+            tl.to(c, { y: "+=" + Math.round(500 + rnd() * 500), rotation: "+=" + Math.round(rnd() * 360), duration: 2.6, ease: "power1.in" }, 68.9);
+          }
+          // end card
+          tex($("end-formula"), String.raw`\nabla^2 f = f_{xx} + f_{yy} \;\approx\; \tfrac{4}{h^2}\,\big(\text{avg of neighbors} - f\big)`);
+          gsap.set($("end-formula"), { opacity: 0, y: 30 });
+          gsap.set($("end-credit"), { opacity: 0, y: 30 });
+          tl.to(tt, { scale: 0.62, y: -70, duration: 0.5, ease: "power2.inOut" }, 69.2);
+          tl.to($("end-formula"), { opacity: 1, y: 0, duration: 0.5 }, 69.4);
+          tl.to($("end-credit"), { opacity: 1, y: 0, duration: 0.5 }, 69.8);
+          // wink
+          tl.set(claude.eyes, { opacity: 0 }, 70.5);
+          tl.set(claude.happy, { opacity: 0 }, 70.5);
+          tl.set(claude.shut, { opacity: 1 }, 70.5);
+          tl.set(claude.shut, { opacity: 0 }, 70.85);
+          tl.set(claude.happy, { opacity: 1 }, 70.85);
+          armTo(claude, "r", 70.5, -60, 0.2);
+          gsap.set($("fade-out"), { opacity: 0 });
+          tl.to($("fade-out"), { opacity: 1, duration: 0.55, ease: "power1.in" }, 71.45);
+        })();
+
+        // =========================================================
+        // karaoke lyrics
+        // =========================================================
+        const DISPLAY = {
+          v1a: ["Take", "a", "point,", "look", "around"],
+          v1b: ["at", "the", "neighbors", "on", "the", "ground,"],
+          v1c: ["average", "what", "they've", "got,"],
+          v1d: ["then", "subtract", "the", "middle", "spot!"],
+          v1e: ["Sitting", "in", "a", "valley?"],
+          v1f: ["Then", "it's", "positive!"],
+          v1g: ["Up", "on", "top", "of", "a", "peak?"],
+          v1h: ["Then", "it's", "negative!"],
+          c1a: ["Laplacian!"], c1e: ["Laplacian!"], f1a: ["Laplacian!"],
+          c1b: ["(nabla", "squared!)"], c1f: ["(nabla", "squared!)"], f1b: ["(nabla", "squared!)"],
+          c1c: ["Add", "the", "second", "derivatives:"],
+          c1d: ["f", "~<sub>x</sub>", "~<sub>x</sub>", "+", "f", "~<sub>y</sub>", "~<sub>y</sub>!"],
+          c1g: ["It's", "the", "average", "of", "your", "neighbors…"], f1c: ["It's", "the", "average", "of", "your", "neighbors…"],
+          c1h: ["minus", "you!"], f1d: ["minus", "YOU!"],
+          v2a: ["Heat", "is", "just", "peer", "pressure:"],
+          v2b: ["hot", "spots", "cool,", "cold", "spots", "warm,"],
+          v2c: ["∂", "~u", "~/∂", "~t", "="],
+          v2d: ["Laplacian", "of", "u!"],
+          v2e: ["When", "it's", "zero,", "it's", "balanced:"],
+          v2f: ["each", "point's", "the", "average", "of", "its", "crew."],
+          v2g: ["Soap", "films,", "steady", "heat,"],
+          v2h: ["and", "electric", "fields", "do", "it", "too!"],
+          t1: ["And", "when", "it's", "zero…"],
+          t2: ["HARMONIC!"],
+        };
+        const lyricLines = S.lines.filter((l) => (l.role === "lead" || (l.role === "nbr" && l.part === 0)) && DISPLAY[l.base_id]);
+        lyricLines.sort((a, b) => a.syllables[0].onset - b.syllables[0].onset);
+        const LY = $("lyrics");
+        const bar = $("ly-bar");
+        gsap.set(bar, { opacity: 0 });
+        tl.to(bar, { opacity: 1, duration: 0.3 }, 7.8);
+        tl.to(bar, { opacity: 0, duration: 0.4 }, 68.9);
+        lyricLines.forEach((ln, li) => {
+          const words = DISPLAY[ln.base_id];
+          const div = el("div", { class: "ly-line" + (ln.role === "nbr" ? " nbr" : "") }, LY);
+          const spans = words.map((w) => {
+            const tight = w.startsWith("~");
+            return el("span", { class: "ly-w" + (tight ? " tight" : "") }, div, tight ? w.slice(1) : w);
+          });
+          const syl = ln.syllables;
+          const show = syl[0].onset - 0.3;
+          const next = lyricLines[li + 1];
+          const hideT = Math.min(next ? next.syllables[0].onset - 0.3 - 0.12 : 99, syl[syl.length - 1].end + 0.9);
+          gsap.set(div, { opacity: 0, y: 24 });
+          tl.to(div, { opacity: 1, y: 0, duration: 0.18, ease: "power2.out" }, show);
+          tl.to(div, { opacity: 0, y: -18, duration: 0.1, ease: "power2.in" }, Math.min(hideT, 68.95));
+          // highlight each word at its first syllable
+          const wordStart = {};
+          syl.forEach((s) => { const wi = s.word_index !== undefined ? s.word_index : null; });
+          let wi = 0;
+          const starts = [];
+          syl.forEach((s, i) => {
+            if (i === 0 || syl[i - 1].word_end) starts.push(s.start);
+          });
+          spans.forEach((sp, i) => {
+            const t = starts[Math.min(i, starts.length - 1)] - 0.03;
+            const col = ln.role === "nbr" ? "#7fe0cf" : "#ffb25b";
+            tl.to(sp, { color: col, scale: 1.14, duration: 0.08, ease: "power2.out" }, t);
+            tl.to(sp, { scale: 1, duration: 0.25, ease: "power2.out" }, t + 0.08);
+          });
+        });
+
+        // =========================================================
+        // procedural layer: lip-sync, beat hops, blinks, canvases
+        // =========================================================
+        const heatCtx = $("heat-canvas").getContext("2d");
+        const heatImg = heatCtx.createImageData(400, 225);
+        const STOPS = [[-1.0, [47, 95, 208]], [-0.45, [127, 182, 238]], [0.0, [233, 214, 186]], [0.4, [233, 130, 92]], [0.75, [216, 64, 47]], [1.0, [255, 211, 110]]];
+        function cmap(u) {
+          u = clamp(u, -1, 1);
+          for (let i = 1; i < STOPS.length; i++) {
+            if (u <= STOPS[i][0]) {
+              const [a, ca] = STOPS[i - 1], [b, cb] = STOPS[i], k = (u - a) / (b - a);
+              return [lerp(ca[0], cb[0], k), lerp(ca[1], cb[1], k), lerp(ca[2], cb[2], k)];
+            }
+          }
+          return STOPS[STOPS.length - 1][1];
+        }
+        function drawHeat(t) {
+          // exact solution of u_t = lap(u) for a sum of Gaussians (heat kernel)
+          const tau = tauOf(t), W = 400, H = 225, d = heatImg.data;
+          for (let j = 0; j < H; j++) {
+            const y = j / H;
+            for (let i = 0; i < W; i++) {
+              const x = i / W;
+              let u = 0;
+              for (const [bx, by, A, s] of HEAT.blobs) {
+                const s2 = s * s, den = s2 + 4 * tau;
+                const dx = (x - bx) * 1.78, dy = y - by;
+                u += A * (s2 / den) * Math.exp(-(dx * dx + dy * dy) / den);
+              }
+              const c = cmap(u), p = (j * W + i) * 4;
+              d[p] = c[0]; d[p + 1] = c[1]; d[p + 2] = c[2]; d[p + 3] = 255;
+            }
+          }
+          heatCtx.putImageData(heatImg, 0, 0);
+          // isotherms
+          heatCtx.strokeStyle = "rgba(43,36,32,0.18)";
+          heatCtx.lineWidth = 1;
+        }
+        const surf = $("surf-canvas").getContext("2d");
+        function drawSurface(t) {
+          const W = 1140, H = 640;
+          surf.clearRect(0, 0, W, H);
+          const az = 0.6 + (t - 48) * 0.28, el_ = 0.55;
+          const ca = Math.cos(az), sa = Math.sin(az), ce = Math.cos(el_), se = Math.sin(el_);
+          const f = (x, y) => (x * x * x - 3 * x * y * y) * 0.55; // monkey saddle: exactly harmonic
+          const proj = (x, y, z) => {
+            const X = x * ca - y * sa, Y = x * sa + y * ca;
+            const Z = z;
+            const sx = X, sy = Y * se - Z * ce;
+            return [W / 2 + sx * 250, H / 2 + 40 + sy * 250];
+          };
+          const N = 22;
+          const col = (z) => {
+            const k = clamp((z + 0.6) / 1.2, 0, 1);
+            return `rgb(${Math.round(lerp(120, 255, k))},${Math.round(lerp(220, 180, k))},${Math.round(lerp(210, 120, k))})`;
+          };
+          surf.lineWidth = 3;
+          for (let pass = 0; pass < 2; pass++) {
+            for (let a = 0; a <= N; a++) {
+              surf.beginPath();
+              for (let b = 0; b <= N; b++) {
+                const u = -1 + (2 * a) / N, v = -1 + (2 * b) / N;
+                const [x, y] = pass ? [v, u] : [u, v];
+                if (x * x + y * y > 1.02) continue;
+                const [px, py] = proj(x, y, f(x, y));
+                surf.strokeStyle = col(f(x, y));
+                if (b === 0 || (pass ? (u * u + (-1 + (2 * (b - 1)) / N) ** 2 > 1.02) : ((-1 + (2 * (b - 1)) / N) ** 2 + u * u > 1.02))) surf.moveTo(px, py);
+                else surf.lineTo(px, py);
+              }
+              surf.stroke();
+            }
+          }
+          // mean-value ring
+          const R = 0.18 + 0.22 * (0.5 + 0.5 * Math.sin((t - 48) * 1.6));
+          const c0 = [0.35, 0.1];
+          surf.lineWidth = 7;
+          surf.strokeStyle = "#ffd66b";
+          surf.beginPath();
+          for (let k = 0; k <= 48; k++) {
+            const a = (k / 48) * Math.PI * 2;
+            const x = c0[0] + R * Math.cos(a), y = c0[1] + R * Math.sin(a);
+            const [px, py] = proj(x, y, f(x, y));
+            k ? surf.lineTo(px, py) : surf.moveTo(px, py);
+          }
+          surf.stroke();
+          const [qx, qy] = proj(c0[0], c0[1], f(c0[0], c0[1]));
+          surf.fillStyle = "#ffd66b";
+          surf.strokeStyle = "#2b2420";
+          surf.lineWidth = 5;
+          surf.beginPath(); surf.arc(qx, qy, 13, 0, Math.PI * 2); surf.fill(); surf.stroke();
+          surf.font = "600 34px Fredoka";
+          surf.fillStyle = "#fff8ec";
+          surf.fillText("center = average of the ring", qx + 26, qy - 18);
+        }
+        const soap = $("soap-canvas").getContext("2d");
+        function drawSoap(t) {
+          const W = 440, H = 330;
+          soap.clearRect(0, 0, W, H);
+          const cx = 220, cy = 130;
+          const wire = (a) => [cx + 150 * Math.cos(a), cy + 70 * Math.sin(a) + 34 * Math.sin(3 * a + 0.3)];
+          for (let r = 1; r >= 0.04; r -= 0.04) {
+            soap.beginPath();
+            for (let k = 0; k <= 60; k++) {
+              const a = (k / 60) * Math.PI * 2;
+              const [x, y] = wire(a);
+              const X = cx + (x - cx) * r, Y = cy + (y - cy) * r + 34 * Math.sin(3 * a + 0.3) * (r * r - r) * 0;
+              k ? soap.lineTo(X, Y) : soap.moveTo(X, Y);
+            }
+            const hue = (200 + r * 160 + (t - 52) * 60) % 360;
+            soap.fillStyle = `hsla(${hue}, 80%, 72%, 0.10)`;
+            soap.fill();
+          }
+          soap.beginPath();
+          for (let k = 0; k <= 80; k++) {
+            const [x, y] = wire((k / 80) * Math.PI * 2);
+            k ? soap.lineTo(x, y) : soap.moveTo(x, y);
+          }
+          soap.strokeStyle = "#2b2420";
+          soap.lineWidth = 7;
+          soap.stroke();
+        }
+
+        const blinkAt = (t, ph) => {
+          const p = (t + ph * 2.3) % 3.4;
+          return p < 0.07 ? 0.12 : p < 0.13 ? 0.5 : 1;
+        };
+        function renderAt(t) {
+          const beat = S.beat;
+          const envC = envAt(S.env.claude, t), envN = envAt(S.env.neighbors, t);
+          const shp = MOUTH[vshape[clamp(Math.floor(t * FPS), 0, NF - 1)]];
+          for (const ch of chars) {
+            if (t < ch.win[0] - 0.05 || t > ch.win[1] + 0.05) continue;
+            const amp = ch.bounce(t);
+            const s = Math.abs(Math.sin(Math.PI * (t / beat + ch.phase)));
+            const land = Math.pow(1 - s, 6) * (amp / 30);
+            let jx = 0;
+            if (ch.shiver && t > ch.shiver[0] && t < ch.shiver[1]) jx = 3 * Math.sin(t * 95);
+            ch.bouncer.style.transform = `translate(${jx}px, ${(-amp * s).toFixed(2)}px) scale(${(1 + 0.08 * land).toFixed(3)}, ${(1 - 0.12 * land).toFixed(3)})`;
+            // arms dance
+            const dn = ch.dance(t);
+            const sw = Math.sin((Math.PI * t) / beat + ch.phase * 3);
+            ch.armL.setAttribute("transform", `rotate(${(-dn * 38 * sw).toFixed(2)} 40 94)`);
+            ch.armR.setAttribute("transform", `rotate(${(dn * 38 * sw).toFixed(2)} 200 94)`);
+            // mouth
+            let m = 0, sh = [1, 1];
+            if (ch.voice === "claude") { m = envC; sh = shp; }
+            else {
+              m = envN;
+              if (ch.singAlong && t > ch.singAlong[0] && t < ch.singAlong[1]) { m = Math.max(m, envC); sh = shp; }
+            }
+            const open = m > 0.05 ? 0.18 + 0.95 * m : 0;
+            ch.mouth.setAttribute("transform", `translate(120 116) scale(${(sh[0] * (0.8 + 0.3 * m)).toFixed(3)} ${(open * sh[1]).toFixed(3)}) translate(-120 -116)`);
+            // blink
+            const b = blinkAt(t, ch.phase);
+            ch.eyes.setAttribute("transform", `translate(0 79) scale(1 ${b}) translate(0 -79)`);
+          }
+          // legs shuffle while climbing
+          if (t > 20.05 && t < 21.6) {
+            claude.legs.forEach((l, i) => l.setAttribute("transform", `translate(0 ${(-7 * Math.max(0, Math.sin(t * 22 + i * Math.PI / 2))).toFixed(2)})`));
+          } else claude.legs.forEach((l) => l.removeAttribute("transform"));
+          // beat pulse on chorus rays
+          if (t > 40.5 && t < 48.7) drawHeat(t);
+          if (t > 47.6 && t < 56.4) { drawSurface(t); drawSoap(t); }
+          // film grain shimmer
+          const g = Math.floor(t * 12);
+          $("grain").style.transform = `translate(${(g * 37) % 64}px, ${(g * 53) % 64}px)`;
+        }
+        window.addEventListener("hf-seek", (e) => renderAt(e.detail.time));
+        renderAt(window.__hfThreeTime || 0);
+        drawHeat(40.5);
+        drawSurface(48.2);
+        drawSoap(52);
+
+        window.__timelines["main"] = tl;
+      })();
+    </script>
+  </body>
+</html>
