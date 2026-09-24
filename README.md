@@ -1,5 +1,7 @@
 # The Laplacian Song — "Average of the Neighbors"
 
+**v2 (82 s)**: cold-open stutter hook, neighbours shouting POSITIVE!/NEGATIVE!, stop-time freeze on "minus… YOU!", disco post-chorus chant ("What's the Laplacian?" / "AVERAGE MINUS YOU!"), "one more time!" key change up to D. Render: `renders/laplacian-song-v2.mp4`; v1 kept as `renders/laplacian-song-v1.mp4` (git tag history in this repo).
+
 A ~72 s music video, written, sung, animated and rendered by Claude, with
 Clawd (the Claude Code mascot) explaining the Laplacian:
 
@@ -12,7 +14,7 @@ Clawd (the Claude Code mascot) explaining the Laplacian:
   heat, electric fields). The wireframe is the monkey saddle `x³ − 3xy²`, which is exactly harmonic.
 - **Tag** — "and when it's zero… HAR-MO-NIC!" in three-part harmony.
 
-Output: `renders/laplacian-song.mp4` (1920×1080, 30 fps, AAC audio).
+Output: `renders/laplacian-song-v2.mp4` (1920×1080, 30 fps, AAC audio).
 
 ## How it was made
 
