@@ -167,7 +167,7 @@ def vowel_class(ph_nucleus):
 
 
 def synth_line(k, words, syllables, voice, speed=0.85, formant=1.0, detune_cents=0.0,
-               time_offset=0.0, legato_glide=0.05):
+               time_offset=0.0, legato_glide=0.05, cons_gain=1.5):
     """Synthesise one sung line. Returns (audio_24k, t_begin_abs, syllable_timing_list)."""
     wph = word_phonemes(k, words)
     # group syllables by word
@@ -396,6 +396,15 @@ def synth_line(k, words, syllables, voice, speed=0.85, formant=1.0, detune_cents
     ker = np.hanning(int(0.01 * TTS_SR)); ker /= ker.sum()
     env = np.convolve(env, ker, mode="same")
     y = y * env
+    # consonant emphasis (+3.5 dB on onsets/codas), smoothed over ~15 ms
+    if cons_gain != 1.0:
+        hop = int(TTS_SR * FP / 1000)
+        g = np.where((region == 1) | (region == 3), cons_gain, 1.0)
+        g = np.repeat(g, hop)[: len(y)]
+        if len(g) < len(y):
+            g = np.pad(g, (0, len(y) - len(g)), constant_values=1.0)
+        kk = np.hanning(int(0.015 * TTS_SR)); kk /= kk.sum()
+        y = y * np.convolve(g, kk, mode="same")
 
     timing = []
     for g in segs:
@@ -406,7 +415,7 @@ def synth_line(k, words, syllables, voice, speed=0.85, formant=1.0, detune_cents
     return y, t_begin, timing
 
 
-CACHE_VERSION = 3   # bump when synth_line's algorithm changes
+CACHE_VERSION = 4   # bump when synth_line's algorithm changes
 
 
 def cached_synth(k, words, syllables, voice, **kw):
@@ -442,7 +451,8 @@ def main():
     os.makedirs(STEMS, exist_ok=True)
     k = get_kokoro()
     N = int(song.DURATION * OUT_SR) + OUT_SR
-    tracks = {name: np.zeros(N) for name in ["lead", "double", "harm", "nbr0", "nbr1", "nbr2", "speech"]}
+    tracks = {name: np.zeros(N) for name in ["lead", "double", "harm", "nbr0", "nbr1", "nbr2", "speech",
+                                               "gang0", "gang1", "gang2", "gang3", "gangC"]}
     timing_out = {"lines": [], "spoken": []}
     only = set(sys.argv[1:])
 
@@ -464,6 +474,16 @@ def main():
             y, t0, tim = cached_synth(k, ln["words"], ln["syllables"], song.VOICE, speed=0.86,
                                     formant=fmt, detune_cents=-6.0, time_offset=0.008)
             place(tracks["harm"], rms_norm(y), t0)
+        elif role == "gang":  # every neighbour shouting the same line: unison crowd
+            tim = None
+            # Claude leads the shout dead-centre (clear words); the neighbours thicken it
+            y, t0, tim = cached_synth(k, ln["words"], ln["syllables"], song.VOICE, speed=0.9, cons_gain=1.7)
+            place(tracks["gangC"], rms_norm(y), t0)
+            for gi, voice in enumerate(song.GANG_VOICES):
+                y, t0, tg = cached_synth(k, ln["words"], ln["syllables"], voice, speed=0.95,
+                                         formant=[1.1, 1.06, 1.14, 1.04][gi], detune_cents=[5.0, -4.0, 7.0, -6.0][gi],
+                                         time_offset=[0.0, 0.008, 0.014, 0.004][gi], cons_gain=1.7)
+                place(tracks[f"gang{gi}"], rms_norm(y), t0)
         else:  # neighbor chorus: 3 different voices, formant-shifted up = tiny singers
             part = ln["part"]
             voice = song.NEIGHBOR_VOICES[part]
@@ -475,8 +495,8 @@ def main():
         print(f"sang {ln['id']:8s} {t0:6.2f}s  " + " ".join(s["text"] for s in tim), flush=True)
 
     if not only or "spoken" in only:
-        for sid, t_start, text in song.SPOKEN:
-            audio, sr, tim = k.create_timed(text, voice=song.VOICE, speed=1.0, trim=False)
+        for sid, t_start, text, spd in song.SPOKEN:
+            audio, sr, tim = k.create_timed(text, voice=song.VOICE, speed=spd, trim=False)
             nz = np.where(np.abs(audio) > 0.01)[0]
             a0 = nz[0] / sr - 0.02
             y = audio[int(a0 * sr): int((nz[-1] / sr + 0.08) * sr)]

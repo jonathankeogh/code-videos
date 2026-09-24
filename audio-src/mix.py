@@ -10,7 +10,7 @@ import numpy as np
 import pyloudnorm as pyln
 import soundfile as sf
 from scipy.ndimage import minimum_filter1d, uniform_filter1d
-from scipy.signal import butter, fftconvolve, lfilter, sosfilt
+from scipy.signal import butter, lfilter, oaconvolve, sosfilt
 
 import song
 from music import make_ir
@@ -25,7 +25,7 @@ meter = pyln.Meter(SR)
 
 
 def load(name):
-    x, sr = sf.read(os.path.join(STEMS, name + ".wav"), dtype="float64")
+    x, sr = sf.read(os.path.join(STEMS, name + ".wav"), dtype="float32")
     assert sr == SR, (name, sr)
     return x
 
@@ -87,6 +87,47 @@ def limiter(x, ceiling_db=-1.0, look=0.004, release=0.09, hop=32):
     return x * g2[:, None]
 
 
+def warp(x, t0, dur, pos):
+    """Replace x[t0:t0+dur] with x read at source time t0 + pos(tau) (tau = output time)."""
+    i0, n = int(t0 * SR), int(dur * SR)
+    tau = np.arange(n) / SR
+    src = (t0 + pos(tau)) * SR
+    j = np.clip(np.floor(src).astype(int), 0, len(x) - 2)
+    w = (src - j)[:, None]
+    seg = (1 - w) * x[j] + w * x[j + 1]
+    x = x.copy()
+    x[i0:i0 + n] = seg
+    return x
+
+
+def tape_stop(x, t_end, dur=0.28):
+    """Speed ramps 1 -> 0 over `dur` seconds, landing on silence at t_end."""
+    x = warp(x, t_end - dur, dur, lambda tau: tau - tau ** 2 / (2 * dur))
+    fade = np.ones(len(x))
+    a, b = int((t_end - 0.03) * SR), int(t_end * SR)
+    fade[a:b] = np.linspace(1, 0, b - a)
+    return x * fade[:, None]
+
+
+def scratch(x, t0, dur=0.42):
+    """Record scratch: the platter is yanked back and forth over the last ~0.2 s of music."""
+    knots_t = np.array([0.0, 0.05, 0.12, 0.19, 0.26, 0.33, dur])
+    speed = np.array([1.0, -2.6, 2.8, -3.0, 2.2, -1.2, 0.0])
+    def pos(tau):
+        sp = np.interp(tau, knots_t, speed)
+        return np.cumsum(sp) / SR
+    return warp(x, t0, dur, pos)
+
+
+def gate(x, a, b, ramp=0.008):
+    g = np.ones(len(x))
+    ia, ib, r = int(a * SR), int(b * SR), int(ramp * SR)
+    g[ia:ib] = 0.0
+    g[max(ia - r, 0):ia] = np.linspace(1, 0, min(r, ia))
+    g[ib:ib + r] = np.linspace(0, 1, len(g[ib:ib + r]))
+    return x * g[:, None]
+
+
 def lufs(x):
     return meter.integrated_loudness(x if x.ndim == 2 else stereo(x))
 
@@ -97,8 +138,21 @@ def gain_to(x, target):
 
 def main():
     n = int(song.DURATION * SR)
-    V = {k: fit(load("vox_" + k), n) for k in ["lead", "double", "harm", "nbr0", "nbr1", "nbr2", "speech"]}
+    V = {k: fit(load("vox_" + k), n) for k in ["lead", "double", "harm", "nbr0", "nbr1", "nbr2", "speech",
+                                                 "gang0", "gang1", "gang2", "gang3", "gangC"]}
     M = {k: fit(load(k), n) for k in ["drums", "bass", "chords", "lead", "fx"]}
+
+    fps = 30
+    hopn = SR // fps
+
+    def env(x):
+        m = x if x.ndim == 1 else x.mean(1)
+        r = np.sqrt(np.array([np.mean(m[i * hopn:(i + 1) * hopn] ** 2) for i in range(len(m) // hopn)]))
+        ref = np.percentile(r[r > 1e-4], 95) if (r > 1e-4).any() else 1.0
+        return [round(float(v), 2) for v in np.clip(r / ref, 0, 1)]
+
+    env_claude = env(V["lead"] + V["speech"] + 0.6 * V["harm"] + 0.8 * V["gangC"])
+    env_nbr = env(V["nbr0"] + V["nbr1"] + V["nbr2"] + V["gang0"] + V["gang1"])
 
     # ---------------- vocal chain
     def chain(m, presence=2.5):
@@ -109,18 +163,24 @@ def main():
         y = sosfilt(sos("lowpass", 12500), y)
         return compress(y, -24, 3.0)
 
-    lead = chain(V["lead"]); speech = chain(V["speech"], 1.5)
-    dbl = chain(V["double"], 1.0); harm = chain(V["harm"], 1.0)
-    nbr = [chain(V[f"nbr{i}"], 1.5) for i in range(3)]
+    lead = chain(V["lead"]).astype(np.float32); speech = chain(V["speech"], 1.5).astype(np.float32)
+    dbl = chain(V["double"], 1.0).astype(np.float32); harm = chain(V["harm"], 1.0).astype(np.float32)
+    nbr = [chain(V[f"nbr{i}"], 1.5).astype(np.float32) for i in range(3)]
+    gang = [chain(V[f"gang{i}"], 2.0).astype(np.float32) for i in range(4)]
+    gangC = chain(V["gangC"], 2.5).astype(np.float32)
+    del V
 
     lead_st = gain_to(stereo(lead), -18.0)
     speech_st = gain_to(stereo(speech), -17.5)
     dbl_d = np.roll(dbl, int(0.017 * SR))
     dbl_st = gain_to(stereo(dbl, -0.65) + 0.8 * stereo(dbl_d, 0.65), -29.5)
     harm_st = gain_to(stereo(harm, 0.25) + 0.7 * stereo(np.roll(harm, int(0.011 * SR)), -0.35), -23.5)
-    nbr_st = sum(gain_to(stereo(x, p), -24.0) for x, p in zip(nbr, (0.55, -0.55, 0.0)))
+    nbr_st = sum(gain_to(stereo(x, p), -24.0) for x, p in zip(nbr, (0.55, -0.55, 0.0))).astype(np.float32)
+    gang_st = (sum(gain_to(stereo(x, p), -22.5) for x, p in zip(gang, (-0.6, -0.2, 0.25, 0.6)))
+               + gain_to(stereo(gangC), -16.8)).astype(np.float32)
+    del nbr, gang, dbl
 
-    sung = lead_st + dbl_st + harm_st + nbr_st
+    sung = lead_st + dbl_st + harm_st + nbr_st + gang_st
     # ping-pong 1/8 delay on the sung parts
     d = int(song.SLOT * SR)
     src = sosfilt(sos("bandpass", [500, 5000]), lead_st.mean(1))
@@ -132,8 +192,9 @@ def main():
         (dl if i % 2 else dr)[:] += tap
     delay = np.stack([dl, dr], 1) * 0.14
     ir = make_ir(rt60=1.25, predelay=0.025)
-    rv_send = sung * 0.22 + speech_st * 0.06 + nbr_st * 0.25
-    verb = np.stack([fftconvolve(rv_send[:, c], ir[:, c])[:n] for c in (0, 1)], 1)
+    rv_send = sung * 0.22 + speech_st * 0.06 + nbr_st * 0.25 + gang_st * 0.2
+    verb = np.stack([oaconvolve(rv_send[:, c], ir[:, c].astype(np.float32))[:n] for c in (0, 1)], 1).astype(np.float32)
+    del rv_send
     vox = sung + speech_st + delay + 0.5 * verb
     vox_l = lufs(vox)
 
@@ -149,7 +210,16 @@ def main():
         mid = np.stack([sosfilt(band, mus[k][:, c]) for c in (0, 1)], 1)
         # frequency-selective carve: the speech band of pads/arps drops ~9 dB under the voice
         mus[k] = (mus[k] - mid * 0.65 * venv[:, None]) * duck[:, None]
+    fx_bus = mus.pop("fx")
     music = sum(mus.values())
+    for a, b in song.STOPS:                       # tape-stop into silence, band slams back at b
+        music = tape_stop(music, a)
+        music = gate(music, a, b)
+    sc = [t for t, k_, l in song.CUES if k_ == "scratch"]
+    for t in sc:                                  # cold open: scratch, then silence until the talk
+        music = scratch(music, t - 0.2)
+        music = gate(music, t + 0.22, 2 * song.BAR)
+    music = music + fx_bus
     music = gain_to(music, vox_l - 3.5)
 
     mix = vox + music
@@ -166,15 +236,6 @@ def main():
           f"vocals {vox_l:.1f} LUFS, len {n / SR:.1f}s -> {OUT_AUDIO}")
 
     # ---------------- timing data for the composition
-    fps = 30
-    hopn = SR // fps
-
-    def env(x):
-        m = x if x.ndim == 1 else x.mean(1)
-        r = np.sqrt(np.array([np.mean(m[i * hopn:(i + 1) * hopn] ** 2) for i in range(len(m) // hopn)]))
-        ref = np.percentile(r[r > 1e-4], 95) if (r > 1e-4).any() else 1.0
-        return [round(float(v), 2) for v in np.clip(r / ref, 0, 1)]
-
     timing = json.load(open(os.path.join(STEMS, "vocal_timing.json")))
     data = dict(
         bpm=song.BPM, beat=song.BEAT, bar=song.BAR, duration=song.DURATION,
@@ -182,8 +243,9 @@ def main():
         chords=song.CHORDS,
         lines=timing["lines"], spoken=timing["spoken"],
         cues=[dict(t=t, kind=k, label=l) for t, k, l in song.CUES],
-        env=dict(fps=fps, claude=env(V["lead"] + V["speech"] + 0.6 * V["harm"]),
-                 neighbors=env(V["nbr0"] + V["nbr1"] + V["nbr2"])),
+        env=dict(fps=fps, claude=env_claude, neighbors=env_nbr),
+        kicks=json.load(open(os.path.join(STEMS, "kicks.json"))),
+        stops=[dict(start=a, end=b) for a, b in song.STOPS],
     )
     os.makedirs(os.path.dirname(OUT_DATA), exist_ok=True)
     with open(OUT_DATA, "w") as f:

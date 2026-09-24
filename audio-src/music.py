@@ -166,7 +166,13 @@ VOICING_LUSH = {   # chorus colours (royal road with 7ths)
     "F": [53, 57, 60, 64], "G": [55, 59, 62, 65], "Em": [55, 59, 62, 64], "Am": [55, 60, 64, 69],
     "C": [55, 60, 64, 67],
 }
-ROOT = {"C": 36, "Dm": 38, "Em": 40, "F": 41, "G": 43, "Am": 33, "Fm": 41}
+ROOT = {"C": 36, "Dm": 38, "Em": 40, "F": 41, "G": 43, "Am": 33, "Fm": 41,
+        "D": 38, "A": 33, "F#m": 42, "Bm": 35, "Gm": 43}
+VOICING.update({"D": [62, 66, 69, 74], "A": [61, 64, 69, 73], "F#m": [61, 66, 69, 73],
+                "Bm": [62, 66, 71, 74], "Gm": [62, 67, 70, 74]})
+VOICING_LUSH_D = {   # final chorus colours after the key change
+    "G": [55, 59, 62, 66], "A": [57, 61, 64, 67], "D": [57, 62, 66, 69], "F#m": [57, 61, 64, 66], "Bm": [57, 62, 66, 71],
+}
 
 
 def section_of(bar):
@@ -310,6 +316,11 @@ def sfx(kind, t0, label):
         f = 1800 * np.exp(-t / 0.12) + 120 + 300 * rng.standard_normal(n).cumsum() / np.sqrt(n)
         x = osc("square", np.abs(f), n) * np.exp(-t / 0.15)
         return [(filt(x, "hp", 300) * 0.3, 0.0, -0.3)]
+    if kind == "scratch":
+        n = int(0.4 * SR); t = np.arange(n) / SR
+        f = 900 * (1 + 0.7 * np.sin(2 * np.pi * 7 * t))
+        x = filt(noise(n), "bp", (500, 3500)) * 0.4 + 0.3 * osc("saw", f, n)
+        return [(filt(x, "bp", (300, 5000)) * np.exp(-t / 0.2) * 0.25, 0.0, 0.0)]
     if kind == "revcymbal":
         c = crash(0.8, dur=1.0)[::-1]
         return [(c * np.linspace(0, 1, len(c)) ** 2, 0.0, 0.0)]
@@ -328,122 +339,168 @@ def make_ir(rt60=1.5, predelay=0.018):
 
 
 def main():
+    import json
     os.makedirs(STEMS, exist_ok=True)
     drums, bass, chords, lead, fx = Bus(), Bus(), Bus(), Bus(), Bus()
     kick_times = []
+
+    def K(bar, beat, v=1.0):
+        drums.add(kick(v), T(bar, beat)); kick_times.append(round(T(bar, beat), 3))
+
+    stop_bars = {int(a // song.BAR) for a, b in song.STOPS}
+    gang_hits = {}   # bar -> syllable start times of the shouted lines (for stabs)
+    for ln in song.lines():
+        if ln["role"] == "gang" and ln["base_id"] in ("v1f", "v1h"):
+            for s_ in ln["syllables"]:
+                gang_hits.setdefault(int(s_["start"] // song.BAR), []).append(s_["start"])
 
     for bar in range(song.TOTAL_BARS):
         sec = section_of(bar)
         ch = song.CHORDS[bar]
         t0 = T(bar)
         root = ROOT[ch]
-        chorus = sec in ("chorus", "final")
-        breakdown = sec == "verse2" and bar in (24, 25)
-        build = sec == "verse2" and bar in (26, 27)
+        key_d = bar >= 30
+        full = sec in ("cold", "chorus", "final")
+        dance = sec in ("post", "post2")
+        stop = bar in stop_bars
+        breakdown = sec == "verse2" and bar in (26, 27)
+        lush = (VOICING_LUSH_D if key_d else VOICING_LUSH)
+        voic = (lush if (full or dance) else VOICING).get(ch, VOICING[ch])
 
-        # ---------------- drums
-        if sec == "intro":
-            if bar >= 2:
-                for i in range(8):
-                    drums.add(hat(0.35 if i % 2 else 0.5), T(bar, i * 0.5), pan=0.25)
+        # ================= drums
+        if full or dance:
+            first = 2 if stop else 0          # stop-time: silent until beat 3 ("YOU!")
+            for b in range(first, 4):
+                K(bar, b, 1.0)
+            for b in (1, 3):
+                if b >= first:
+                    drums.add(snare(0.75), T(bar, b)); drums.add(clap(0.6), T(bar, b), pan=0.1)
+            if dance:
+                for b in (0, 2):
+                    drums.add(clap(0.5), T(bar, b), pan=-0.15)
+            for i in range(4):
+                if i + 0.5 >= first:
+                    drums.add(hat(0.45, open_=True), T(bar, i + 0.5), pan=0.25)
+            for i in range(16):
+                if i * 0.25 >= first:
+                    drums.add(hat(0.18 if i % 2 else 0.26), T(bar, i * 0.25), pan=-0.3)
+            if stop:
+                drums.add(clap(0.8), T(bar, 2), pan=0.0)
+            if sec == "chorus" and bar == 15 or sec == "final" and bar == 32:
+                for b in (3.0, 3.25, 3.5, 3.75):
+                    drums.add(snare(0.3 + 0.1 * (b - 3) * 4), T(bar, b))
+        elif sec == "talk":
+            for i in range(8):
+                drums.add(hat(0.3 if i % 2 else 0.42), T(bar, i * 0.5), pan=0.25)
+            K(bar, 0, 0.7)
             if bar == 3:
-                drums.add(kick(0.8), T(bar, 0)); kick_times.append(T(bar, 0))
+                K(bar, 2, 0.7)
         elif sec in ("verse1", "verse2") and not breakdown:
-            kicks = [0, 1.5, 2] if not build else [0, 1, 2, 3]
-            for b in kicks:
-                drums.add(kick(0.95), T(bar, b)); kick_times.append(T(bar, b))
+            for b in (0, 1.5, 2):
+                K(bar, b, 0.95)
             for b in (1, 3):
                 drums.add(snare(0.7), T(bar, b)); drums.add(clap(0.35), T(bar, b), pan=-0.1)
             for i in range(8):
                 drums.add(hat(0.5 if i % 2 == 0 else 0.32), T(bar, i * 0.5), pan=0.3)
-            if bar == 27:   # snare roll into the final chorus
-                for i in range(16):
-                    drums.add(snare(0.2 + 0.55 * i / 15), T(bar, i * 0.25), pan=0.0)
+            for tt in gang_hits.get(bar, []):      # claps land on every shouted syllable
+                drums.add(clap(0.7), tt, pan=0.0)
             if bar == 11:
-                for i, b in enumerate((3.0, 3.25, 3.5, 3.75)):
+                for i, b in enumerate((3.5, 3.625, 3.75, 3.875)):
                     drums.add(snare(0.35 + 0.15 * i), T(bar, b))
         elif breakdown:
             for i in range(8):
                 drums.add(hat(0.3 if i % 2 else 0.4), T(bar, i * 0.5), pan=0.3)
-            if bar == 25:
+            if bar == 27:
                 for b in (2, 2.5, 3, 3.25, 3.5, 3.75):
-                    drums.add(kick(0.55), T(bar, b)); kick_times.append(T(bar, b))
-        elif chorus:
-            for b in range(4):
-                drums.add(kick(1.0), T(bar, b)); kick_times.append(T(bar, b))
-            for b in (1, 3):
-                drums.add(snare(0.75), T(bar, b)); drums.add(clap(0.6), T(bar, b), pan=0.1)
-            for i in range(4):
-                drums.add(hat(0.45, open_=True), T(bar, i + 0.5), pan=0.25)
-            for i in range(16):
-                drums.add(hat(0.18 if i % 2 else 0.26), T(bar, i * 0.25), pan=-0.3)
-            if bar in (19, 31):
-                for b in (3.0, 3.25, 3.5, 3.75):
-                    drums.add(snare(0.45), T(bar, b))
-        elif sec == "tag" and bar == 34:
-            drums.add(kick(1.0), T(bar, 0)); kick_times.append(T(bar, 0))
-        elif sec == "tag" and bar == 33:
-            for b in (3.0, 3.25, 3.5, 3.75):
-                drums.add(snare(0.25 + 0.1 * b), T(bar, b))
-
-        # ---------------- bass
-        if sec == "intro":
-            if bar >= 1:
-                bass.add(bass_note(root, song.BAR * 0.95, 0.55), t0)
-        elif breakdown or (sec == "tag" and bar in (32, 33)):
-            bass.add(bass_note(root, song.BAR * 0.98, 0.6), t0)
+                    K(bar, b, 0.55)
+        elif sec == "build":
+            for b in (0, 1, 2, 3):
+                K(bar, b, 0.9)
+            for i in range(14):                    # 16th snare roll, crescendo, gap before the drop
+                drums.add(snare(0.2 + 0.6 * i / 13), T(bar, i * 0.25), pan=0.0)
         elif sec == "tag":
-            if bar == 34:
-                bass.add(bass_note(root, song.BAR * 1.9, 0.75), t0)
-        else:
-            pat = ([0, 0, 12, 0, 0, 0, 12, 0] if not chorus else [0, 12, 0, 12, 0, 12, 0, 12])
-            for i, off in enumerate(pat):
-                v = 0.8 if i % 2 == 0 else 0.62
-                bass.add(bass_note(root + off, song.SLOT * 0.8, v), T(bar, i * 0.5))
+            if bar == 38:
+                for b in (3.0, 3.25, 3.5, 3.75):
+                    drums.add(snare(0.25 + 0.12 * (b - 3) * 4), T(bar, b))
+            if bar == 39:
+                K(bar, 0, 1.0)
 
-        # ---------------- chords
-        voic = (VOICING_LUSH if chorus else VOICING).get(ch, VOICING[ch])
-        if sec == "intro":
+        # ================= bass
+        if full or dance:
+            if stop:
+                bass.add(bass_note(root, song.BAR * 0.48, 0.85), T(bar, 2))
+            else:
+                for i, off in enumerate([0, 12, 0, 12, 0, 12, 0, 12]):
+                    bass.add(bass_note(root + off, song.SLOT * 0.8, 0.8 if i % 2 == 0 else 0.62), T(bar, i * 0.5))
+        elif sec == "talk":
+            bass.add(bass_note(root, song.BAR * 0.9, 0.5), t0)
+        elif breakdown or sec == "tag" and bar in (37, 38):
+            bass.add(bass_note(root, song.BAR * 0.98, 0.6), t0)
+        elif sec == "tag" and bar == 39:
+            bass.add(bass_note(root, song.BAR * 1.9, 0.75), t0)
+        elif sec == "build":
+            for i in range(7):
+                bass.add(bass_note(root, song.SLOT * 0.8, 0.4 + 0.4 * i / 6), T(bar, i * 0.5))
+        elif sec in ("verse1", "verse2"):
+            for i, off in enumerate([0, 0, 12, 0, 0, 0, 12, 0]):
+                bass.add(bass_note(root + off, song.SLOT * 0.8, 0.8 if i % 2 == 0 else 0.62), T(bar, i * 0.5))
+
+        # ================= chords
+        if full:
+            if stop:   # the "YOU!" chord: one big stab that rings to the end of the bar
+                for m in voic:
+                    chords.add(supersaw(m, song.BAR * 0.5, bright=5600, a=0.005, r=0.25), T(bar, 2), gain=0.16)
+            else:
+                for m in voic:
+                    chords.add(supersaw(m, song.BAR * 0.98, bright=5200, a=0.02, r=0.3), t0, gain=0.13)
+        elif dance:
             for m in voic:
-                chords.add(supersaw(m, song.BAR, bright=2200, a=0.25, r=0.5), t0, gain=0.10)
-        elif chorus:
-            for m in voic:
-                chords.add(supersaw(m, song.BAR * 0.98, bright=5200, a=0.02, r=0.3), t0, gain=0.13)
+                chords.add(supersaw(m, song.BAR, bright=1800, a=0.05, r=0.3), t0, gain=0.07)
+            for b in (0.5, 1.5, 2.5, 3.5):         # pumping off-beat stabs
+                for m in voic:
+                    chords.add(supersaw(m, 0.16, bright=6000, a=0.003, r=0.08), T(bar, b), gain=0.12)
+        elif sec == "talk":
+            for m in VOICING[ch]:
+                chords.add(supersaw(m, song.BAR, bright=1700, a=0.15, r=0.4), t0, gain=0.08)
         elif breakdown:
             for m in voic:
                 chords.add(supersaw(m, song.BAR, bright=1600, a=0.3, r=0.6), t0, gain=0.12)
+        elif sec == "build":
+            for m in VOICING["A"]:
+                chords.add(supersaw(m, song.BAR * 0.86, bright=3200, a=1.4, r=0.05), t0, gain=0.13)
         elif sec == "tag":
-            if bar == 32:
-                for m in VOICING["Fm"]:
+            if bar == 37:
+                for m in VOICING["Gm"]:
                     chords.add(supersaw(m, song.BAR, bright=1800, a=0.5, r=0.4), t0, gain=0.12)
-            elif bar == 33:   # dominant swell under "har-mooo-"
-                for m in [55, 59, 62, 65]:
+            elif bar == 38:   # dominant swell under "har-mooo-"
+                for m in [57, 61, 64, 67]:
                     chords.add(supersaw(m, song.BAR, bright=2600, a=0.6, r=0.15), t0, gain=0.12)
-            elif bar == 34:   # the "-nic!" resolution: big C add9
-                for m in [48, 55, 60, 64, 67, 74]:
+            elif bar == 39:   # the "-nic!" resolution: big D add9
+                for m in [50, 57, 62, 66, 69, 76]:
                     chords.add(supersaw(m, song.BAR * 1.5, bright=4200, a=0.01, r=1.2), t0, gain=0.10)
-                for i, m in enumerate([72, 76, 79, 84, 88]):
+                for i, m in enumerate([74, 78, 81, 86, 90]):
                     lead.add(bell(m, 2.2, 0.16), t0 + i * 0.09, pan=(i - 2) * 0.3)
-        else:
-            # verse: soft pad + off-beat plucks ("skank")
+        else:  # verses: soft pad + off-beat plucks, stabs on the gang shouts
             for m in voic:
                 chords.add(supersaw(m, song.BAR, bright=1300, a=0.2, r=0.4), t0, gain=0.05)
             for b in (0.5, 1.5, 2.5, 3.5):
                 for j, m in enumerate(voic[:3]):
                     chords.add(pluck(m + 12, 0.16), T(bar, b), pan=[-0.4, 0.0, 0.4][j])
+            for tt in gang_hits.get(bar, []):
+                for m in voic:
+                    chords.add(supersaw(m + 12, 0.22, bright=6500, a=0.003, r=0.1), tt, gain=0.1)
 
-        # ---------------- chip arpeggios
+        # ================= chip arpeggios / lead colour
         up = [voic[0], voic[1], voic[2], voic[3], voic[0] + 12, voic[3], voic[2], voic[1]]
-        if sec == "intro" or chorus:
-            step = 0.25 if chorus else 0.5
-            nsteps = int(4 / step)
-            for i in range(nsteps):
-                m = up[i % 8] + 12
-                lead.add(chip(m, step * song.BEAT * 0.7, 0.16 if chorus else 0.12,
-                              kind="pulse12" if chorus else "pulse25"),
-                         T(bar, i * step), pan=0.35 if i % 2 else -0.35)
+        if (full or dance) and not stop:
+            for i in range(16):
+                lead.add(chip(up[i % 8] + 12, 0.25 * song.BEAT * 0.7, 0.16, kind="pulse12"),
+                         T(bar, i * 0.25), pan=0.35 if i % 2 else -0.35)
+        if sec == "talk":
+            for i in range(8):
+                lead.add(chip(up[i % 8] + 12, 0.5 * song.BEAT * 0.7, 0.1, kind="pulse25"),
+                         T(bar, i * 0.5), pan=0.35 if i % 2 else -0.35)
         if sec == "verse2" and not breakdown:
-            # heat "bubbles": sparse high sine blips
             for i in range(16):
                 if rng.random() < 0.3:
                     m = voic[rng.integers(0, 4)] + 24
@@ -452,14 +509,16 @@ def main():
             for i, m in enumerate([voic[0] + 24, voic[2] + 24, voic[1] + 24, voic[3] + 24]):
                 lead.add(bell(m, 1.4, 0.18), T(bar, i), pan=(i - 1.5) * 0.3)
 
-    # soft synth doubling the sung melody in the choruses (helps pitch read)
+    # soft synth doubling the sung hook/chant melodies (helps the pitch read)
     for ln in song.lines():
-        if ln["role"] != "lead" or ln["base_id"][0] not in "cft":
+        dbl = (ln["role"] == "lead" and ln["base_id"][:2] in ("co", "c1", "f1", "p1", "p2", "t1", "t2")) or \
+              (ln["role"] == "gang" and ln["base_id"] in ("p1b", "p2b", "v1f", "v1h"))
+        if not dbl:
             continue
-        for s in ln["syllables"]:
-            lead.add(chip(s["midi"] + 12, s["dur"] * 0.92, 0.07, kind="tri"), s["start"])
+        for s_ in ln["syllables"]:
+            lead.add(chip(s_["midi"] + 12, s_["dur"] * 0.92, 0.07, kind="tri"), s_["start"])
 
-    # ---------------- sound effects
+    # ================= sound effects
     for t0, kind, label in song.CUES:
         for sig, dt, pan in sfx(kind, t0, label):
             if pan is None:
@@ -467,7 +526,7 @@ def main():
             else:
                 fx.add(sig, t0 + dt, pan=pan)
 
-    # ---------------- sidechain duck on pads/bass/arps from the kick
+    # ================= sidechain duck on pads/bass/arps from the kick
     duck = np.ones(N)
     for tk in kick_times:
         i0 = int(tk * SR); n = int(0.35 * SR)
@@ -479,7 +538,7 @@ def main():
     bass.x *= (0.35 + 0.65 * duck)[:, None]
     lead.x *= (0.4 + 0.6 * duck)[:, None]
 
-    # ---------------- reverb (send)
+    # ================= reverb (send)
     from scipy.signal import fftconvolve
     ir = make_ir()
     for bus, send in ((chords, 0.28), (lead, 0.35), (fx, 0.25), (drums, 0.06)):
@@ -487,7 +546,6 @@ def main():
         bus.x += send * wet
 
     for name, bus in (("drums", drums), ("bass", bass), ("chords", chords), ("lead", lead), ("fx", fx)):
-        # fade the very end
         fade = np.ones(N)
         e0 = int((song.DURATION - 0.6) * SR)
         fade[e0:] = np.linspace(1, 0, N - e0) ** 2
@@ -495,6 +553,9 @@ def main():
         peak = np.abs(bus.x).max()
         sf.write(os.path.join(STEMS, f"{name}.wav"), bus.x.astype(np.float32), SR, subtype="FLOAT")
         print(f"{name:7s} peak {20 * np.log10(peak + 1e-9):6.1f} dBFS")
+    with open(os.path.join(STEMS, "kicks.json"), "w") as f:
+        json.dump(sorted(set(kick_times)), f)
+    print("kicks", len(kick_times))
 
 
 if __name__ == "__main__":
