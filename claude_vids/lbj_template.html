@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>L-B-J (All the Way)</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <script src="assets/song_data.js"></script>
+    <style>
+      @font-face { font-family: "Luckiest Guy"; src: url("assets/fonts/LuckiestGuy-Regular.ttf"); }
+      @font-face { font-family: "Fredoka"; src: url("assets/fonts/Fredoka.ttf"); font-weight: 300 700; }
+      :root {
+        --clawd: #d97757; --ink: #1f1a17; --cream: #f4ede4; --gold: #f2c14e; --rose: #e8577d;
+        --navy: #1d2a57; --sky: #7ec8e3;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: var(--ink); }
+      #root { position: relative; width: 100%; height: 100%; overflow: hidden; font-family: "Fredoka", sans-serif; color: var(--cream); }
+      .clip { position: absolute; inset: 0; }
+      .in { position: absolute; inset: 0; }
+
+      /* ---------- backgrounds ---------- */
+      .bg { overflow: hidden; }
+      .bg-fill { position: absolute; inset: 0; }
+      #bg-intro .bg-fill { background: linear-gradient(180deg, #2a1846 0%, #b23a48 55%, #f28f3b 85%, #f2c14e 100%); }
+      #bg-night .bg-fill { background: radial-gradient(ellipse at 30% 30%, #2c3e70 0%, #121a36 60%, #0a0f22 100%); }
+      #bg-day .bg-fill { background: linear-gradient(180deg, #7ec8e3 0%, #cfe9f1 70%, #f4ede4 100%); }
+      #bg-cream .bg-fill { background: #f4ede4; }
+      #bg-war .bg-fill { background: radial-gradient(ellipse at 40% 40%, #4b4f36 0%, #2b2d1f 70%, #1a1b12 100%); }
+      #bg-dusk .bg-fill { background: linear-gradient(180deg, #3b1f4f 0%, #c2455b 45%, #f28f3b 75%, #f7c35f 100%); }
+      #bg-tag .bg-fill { background: linear-gradient(135deg, #1d2a57 0%, #3a2a6b 100%); }
+      .burst-wrap { position: absolute; inset: 0; background: #f28f3b; }
+      .burst { position: absolute; left: 50%; top: 50%; width: 3200px; height: 3200px; margin: -1600px 0 0 -1600px;
+        background: repeating-conic-gradient(from 0deg, #e8577d 0deg 10deg, #f2c14e 10deg 20deg); border-radius: 50%; }
+      #bg-burst2 .burst { background: repeating-conic-gradient(from 0deg, #5b6fd6 0deg 10deg, #e8577d 10deg 20deg); }
+      .stars i { position: absolute; width: 6px; height: 6px; background: #fff; border-radius: 50%; }
+      .grain { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.35) 100%); pointer-events: none; }
+
+      /* ---------- shared scene pieces ---------- */
+      .big-title { position: absolute; left: 80px; width: 1300px; text-align: center; font-family: "Luckiest Guy"; font-size: 84px; line-height: 1.05; color: var(--cream); text-shadow: 0 6px 0 rgba(0,0,0,.35); }
+      .t-top { top: 80px; } .t-mid { top: 620px; }
+      .hl { color: var(--gold); }
+      .kicker { position: absolute; font-family: "Luckiest Guy"; font-size: 54px; color: var(--gold); text-shadow: 0 4px 0 rgba(0,0,0,.4); }
+      .k-left { left: 180px; top: 760px; }
+      .k-right { left: 820px; top: 150px; color: #d8d2b8; }
+      .stamp { position: absolute; font-family: "Luckiest Guy"; font-size: 78px; color: #d63a3a; border: 10px solid #d63a3a; border-radius: 18px; padding: 14px 30px 4px; background: rgba(244,237,228,.9); line-height: 1; white-space: nowrap; }
+      .mega { position: absolute; left: 0; right: 0; top: 110px; text-align: center; font-family: "Luckiest Guy"; font-size: 200px; color: var(--gold); text-shadow: 0 10px 0 #b23a48, 0 20px 30px rgba(0,0,0,.4); }
+      .confetti { position: absolute; left: 960px; top: 470px; width: 0; height: 0; }
+      .confetti i { position: absolute; width: 22px; height: 12px; border-radius: 3px; }
+
+      /* intro */
+      .intro-star { pointer-events: none; position: absolute; left: 960px; top: 400px; width: 900px; height: 900px; margin: -450px 0 0 -450px; font-size: 900px; line-height: 900px; text-align: center; color: rgba(242,193,78,.18); }
+      .intro-title { position: absolute; left: 0; width: 1500px; top: 170px; text-align: center; font-family: "Luckiest Guy"; font-size: 300px; line-height: 1; color: var(--cream); text-shadow: 0 14px 0 #7a1f3d; }
+      .it, .dot { display: inline-block; }
+      .dot { color: var(--gold); margin: 0 10px; }
+      .intro-sub { position: absolute; left: 0; width: 1500px; top: 520px; text-align: center; font-size: 46px; font-weight: 700; color: #fff4d6; }
+      .intro-credit { position: absolute; left: 0; width: 1500px; top: 600px; text-align: center; font-size: 38px; font-weight: 500; color: var(--gold); letter-spacing: 4px; text-transform: uppercase; }
+
+      /* v1 */
+      .cal { position: absolute; left: 330px; top: 170px; width: 520px; height: 540px; background: var(--cream); border-radius: 28px; overflow: hidden; box-shadow: 0 30px 60px rgba(0,0,0,.5); text-align: center; color: var(--ink); }
+      .cal-top { background: #b23a48; color: #fff; font-family: "Luckiest Guy"; font-size: 64px; padding: 26px 0 10px; }
+      .cal-day { font-family: "Luckiest Guy"; font-size: 280px; line-height: 1.05; }
+      .cal-yr { font-size: 60px; font-weight: 700; }
+      .plane { position: absolute; left: 0; top: 190px; width: 820px; height: 252px; }
+      .plane svg { width: 100%; height: 100%; }
+      .ruler { position: absolute; left: 240px; top: 110px; width: 110px; height: 770px; background: var(--gold); border-radius: 12px; border: 5px solid var(--ink); }
+      .tick { height: 110px; border-bottom: 5px solid var(--ink); position: relative; }
+      .tick span { position: absolute; right: 12px; bottom: 6px; font-family: "Luckiest Guy"; font-size: 40px; color: var(--ink); }
+      .fig-wrap { position: absolute; }
+      .fig-wrap svg { width: 100%; height: 100%; }
+      .fig-wrap.tall { left: 400px; top: 170px; width: 340px; height: 714px; }
+      .height-tag { position: absolute; left: 800px; top: 150px; font-family: "Luckiest Guy"; font-size: 150px; color: var(--navy); text-shadow: 0 6px 0 var(--gold); }
+      .fig-wrap.lean { left: 240px; top: 170px; width: 340px; height: 714px; }
+      .senator { position: absolute; left: 720px; top: 500px; width: 200px; height: 380px; }
+      .sen-head { width: 110px; height: 110px; border-radius: 50%; background: #e8bf99; margin: 0 auto; }
+      .sen-body { width: 200px; height: 250px; margin-top: 10px; border-radius: 30px 30px 10px 10px; background: #6b7a8f; color: #fff; font-weight: 700; font-size: 28px; text-align: center; padding-top: 100px; }
+      .sweat { position: absolute; width: 22px; height: 30px; background: #7ec8e3; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; }
+      .s1 { left: 150px; top: 10px; } .s2 { left: 175px; top: 55px; }
+      .st-treat { left: 420px; top: 90px; }
+      .doc { position: absolute; left: 260px; top: 110px; width: 760px; height: 780px; background: #fbf5e6; border-radius: 16px; box-shadow: 0 30px 60px rgba(0,0,0,.35); color: var(--ink); text-align: center; padding-top: 60px; }
+      .doc-h { font-family: "Luckiest Guy"; font-size: 76px; color: var(--navy); }
+      .doc-sub { font-size: 50px; font-weight: 600; margin-bottom: 40px; }
+      .doc-lines i { display: block; height: 16px; margin: 26px 80px; background: #d9d0bb; border-radius: 8px; }
+      .sig { position: absolute; left: 230px; top: 600px; width: 440px; height: 120px; }
+      .st-law { left: 830px; top: 560px; }
+      .chart { position: absolute; left: 140px; top: 200px; width: 1200px; }
+      .bar-row { display: flex; align-items: center; margin-bottom: 50px; }
+      .bar-lbl { width: 330px; font-family: "Luckiest Guy"; font-size: 60px; color: var(--navy); }
+      .bar { height: 140px; border-radius: 0 20px 20px 0; position: relative; }
+      .b-lbj { width: 860px; background: var(--clawd); }
+      .b-gw { width: 92px; background: #8a94a6; }
+      .cnt { position: absolute; left: 24px; top: 26px; font-family: "Luckiest Guy"; font-size: 96px; color: #fff; }
+      .b-gw .cnt { left: 110px; color: #4a5263; }
+      .chart-note { font-size: 38px; font-weight: 600; color: var(--navy); }
+      .st-land { left: 700px; top: 640px; }
+      .bbox { position: absolute; left: 470px; top: 560px; width: 440px; height: 330px; background: var(--navy); border-radius: 20px; }
+      .bbox-slot { width: 240px; height: 26px; margin: 40px auto 0; background: #0b1230; border-radius: 12px; }
+      .bbox-lbl { text-align: center; font-family: "Luckiest Guy"; font-size: 110px; color: var(--cream); margin-top: 40px; }
+      .ballot { position: absolute; width: 170px; height: 220px; background: #fff; border-radius: 10px; box-shadow: 0 10px 20px rgba(0,0,0,.2); font-size: 120px; line-height: 220px; text-align: center; color: #14592f; }
+      .bl0 { left: 420px; top: 280px; } .bl1 { left: 610px; top: 250px; } .bl2 { left: 790px; top: 290px; } .bl3 { left: 520px; top: 300px; }
+
+      /* v2 */
+      .card { position: absolute; top: 190px; width: 520px; height: 300px; border-radius: 26px; background: var(--navy); color: var(--cream); font-family: "Luckiest Guy"; font-size: 76px; text-align: center; line-height: 1; padding-top: 40px; box-shadow: 0 20px 0 rgba(0,0,0,.15); }
+      .card-ic { font-size: 50px; color: var(--gold); margin-bottom: 26px; }
+      .c1 { left: 120px; } .c2 { left: 700px; background: #b23a48; }
+      .bus { position: absolute; left: 330px; top: 590px; width: 640px; height: 250px; background: #f2b705; border-radius: 30px 60px 20px 20px; border: 6px solid var(--ink); }
+      .bus-win { display: flex; gap: 20px; padding: 26px 40px 0; }
+      .bus-win i { width: 110px; height: 80px; background: #cfe9f1; border: 5px solid var(--ink); border-radius: 12px; }
+      .bus-lbl { text-align: center; font-family: "Luckiest Guy"; font-size: 44px; color: var(--ink); margin-top: 16px; }
+      .wheel { position: absolute; bottom: -50px; width: 100px; height: 100px; border-radius: 50%; background: var(--ink); border: 18px solid #555; }
+      .w1 { left: 80px; } .w2 { right: 80px; }
+      .med { position: absolute; top: 300px; width: 540px; height: 540px; border-radius: 40px; background: #fff; box-shadow: 0 30px 60px rgba(0,0,0,.2); text-align: center; }
+      .m1 { left: 110px; } .m2 { left: 760px; }
+      .cross { position: relative; width: 240px; height: 240px; margin: 70px auto 40px; }
+      .cross::before, .cross::after { content: ""; position: absolute; background: #d63a3a; border-radius: 16px; }
+      .cross::before { left: 80px; top: 0; width: 80px; height: 240px; }
+      .cross::after { left: 0; top: 80px; width: 240px; height: 80px; }
+      .med-t { font-family: "Luckiest Guy"; font-size: 84px; color: var(--navy); }
+      .m1 .cross::before, .m1 .cross::after { background: #2d5aa8; }
+      .passport { position: absolute; left: 120px; top: 170px; width: 470px; height: 640px; background: #1f3a6b; border-radius: 26px; color: var(--gold); text-align: center; padding-top: 60px; }
+      .pp-h { font-family: "Luckiest Guy"; font-size: 70px; }
+      .pp-stamp { margin: 120px auto 0; width: 380px; padding: 30px 10px; border: 8px solid #e24a3b; color: #e24a3b; background: var(--cream); font-family: "Luckiest Guy"; font-size: 56px; line-height: 1.05; border-radius: 16px; }
+      .school { position: absolute; left: 700px; top: 230px; width: 620px; height: 640px; }
+      .roof { width: 0; height: 0; margin: 0 auto; border-left: 330px solid transparent; border-right: 330px solid transparent; border-bottom: 200px solid #7a1f3d; margin-left: -20px; }
+      .sch-body { width: 560px; height: 280px; margin: 0 auto; background: #c2455b; position: relative; }
+      .door { position: absolute; left: 230px; bottom: 0; width: 100px; height: 160px; background: var(--ink); border-radius: 50px 50px 0 0; }
+      .sch-lbl { margin-top: 26px; text-align: center; font-family: "Luckiest Guy"; font-size: 46px; line-height: 1.1; color: var(--navy); }
+      .court { position: absolute; left: 150px; top: 150px; width: 760px; height: 560px; }
+      .pedi { width: 0; height: 0; border-left: 380px solid transparent; border-right: 380px solid transparent; border-bottom: 150px solid #e7e1d4; }
+      .cols { display: flex; justify-content: space-around; background: #d8d0bf; height: 330px; padding: 20px 30px 0; }
+      .cols i { width: 70px; height: 310px; background: repeating-linear-gradient(90deg, #fff 0 14px, #e5ddcc 14px 20px); border-radius: 6px; }
+      .steps { height: 80px; background: linear-gradient(#cfc5b2 0 33%, #bfb49f 33% 66%, #afa38c 66%); }
+      .gavel { position: absolute; left: 980px; top: 300px; width: 320px; height: 320px; }
+      .g-head { position: absolute; left: 0; top: 0; width: 240px; height: 110px; background: #7a4a22; border-radius: 30px; }
+      .g-handle { position: absolute; left: 100px; top: 100px; width: 40px; height: 220px; background: #9b6a3a; border-radius: 20px; }
+      .tm-card { position: absolute; left: 150px; top: 760px; width: 1150px; height: 150px; background: var(--navy); border-radius: 24px; text-align: center; padding-top: 16px; }
+      .tm-name { font-family: "Luckiest Guy"; font-size: 72px; color: var(--gold); line-height: 1; }
+      .tm-sub { font-size: 40px; font-weight: 600; color: var(--cream); margin-top: 8px; }
+      .stencil { position: absolute; left: 100px; top: 120px; font-family: "Luckiest Guy"; font-size: 150px; color: #d8d2b8; letter-spacing: 10px; }
+      .troops { position: absolute; left: 150px; top: 330px; width: 1050px; height: 480px; }
+      .counter { position: absolute; left: 0; width: 1400px; top: 180px; text-align: center; font-family: "Luckiest Guy"; font-size: 240px; color: #e24a3b; text-shadow: 0 10px 0 rgba(0,0,0,.4); }
+      .counter-sub { position: absolute; left: 0; width: 1400px; top: 450px; text-align: center; font-size: 56px; font-weight: 700; color: #d8d2b8; }
+      .signs { position: absolute; left: 110px; top: 540px; width: 1250px; height: 380px; }
+      .sign { position: absolute; top: 0; width: 280px; }
+      .sign-b { background: var(--cream); color: var(--ink); font-family: "Luckiest Guy"; font-size: 40px; text-align: center; padding: 20px 10px 12px; border-radius: 12px; border: 5px solid var(--ink); }
+      .stick { width: 20px; height: 130px; background: #9b6a3a; margin: 0 auto; }
+      .sg0 { left: 0; } .sg1 { left: 320px; } .sg2 { left: 640px; } .sg3 { left: 960px; }
+      .tv { position: absolute; left: 150px; top: 130px; width: 1150px; height: 760px; background: #6b4a2b; border-radius: 60px; padding: 60px; box-shadow: 0 40px 80px rgba(0,0,0,.5); }
+      .tv-screen { position: relative; width: 860px; height: 640px; background: radial-gradient(ellipse, #3c4a4a, #151c1c); border-radius: 50px / 70px; overflow: hidden; padding: 60px 60px; }
+      .tv-date { font-family: "Luckiest Guy"; font-size: 54px; color: var(--gold); margin-bottom: 30px; }
+      .tv-q { font-size: 52px; font-weight: 600; line-height: 1.25; color: #e9f5ee; }
+      .scan { position: absolute; inset: 0; background: repeating-linear-gradient(0deg, rgba(0,0,0,.18) 0 3px, transparent 3px 7px); }
+      .tv-knobs { position: absolute; right: 40px; top: 160px; }
+      .tv-knobs i { display: block; width: 90px; height: 90px; margin-bottom: 60px; border-radius: 50%; background: #2b1d10; border: 8px solid #a37d52; }
+      .sun { position: absolute; left: 520px; top: 380px; width: 520px; height: 520px; border-radius: 50%; background: radial-gradient(circle, #fff1b8, #f7b733 60%, #f28f3b); }
+      .hills { position: absolute; left: -100px; right: -100px; top: 700px; bottom: -200px; background: #3b2340; border-radius: 50% 50% 0 0 / 30% 30% 0 0; }
+      .fence { position: absolute; left: 0; right: 0; top: 740px; height: 160px; display: flex; justify-content: space-around; border-top: 18px solid #2a1628; border-bottom: 0; }
+      .fence i { width: 26px; height: 170px; background: #2a1628; margin-top: -40px; }
+      .ranch-sign { position: absolute; left: 150px; top: 200px; padding: 26px 50px; background: #6b4a2b; border: 8px solid #3a2410; border-radius: 16px; font-family: "Luckiest Guy"; font-size: 90px; color: var(--cream); text-align: center; line-height: 1; }
+      .ranch-sign small { display: block; font-family: "Fredoka"; font-weight: 600; font-size: 36px; color: var(--gold); margin-top: 10px; }
+
+      /* choruses */
+      .lbj-letters { position: absolute; left: 0; right: 0; top: 60px; text-align: center; font-family: "Luckiest Guy"; font-size: 380px; line-height: 1; }
+      .lt { display: inline-block; margin: 0 30px; color: var(--cream); text-shadow: 0 16px 0 #7a1f3d, 0 30px 40px rgba(0,0,0,.35); }
+      .lt2 { color: var(--navy); text-shadow: 0 16px 0 #f4ede4, 0 30px 40px rgba(0,0,0,.35); }
+      .banner { position: absolute; left: 200px; right: 200px; top: 140px; height: 220px; background: var(--navy); border-radius: 30px; text-align: center; font-family: "Luckiest Guy"; font-size: 120px; line-height: 250px; color: var(--gold); box-shadow: 0 20px 0 #0d1533; }
+      .lone-star { position: absolute; left: 430px; top: 300px; width: 600px; height: 600px; margin: -300px 0 0 -300px; text-align: center; font-size: 600px; line-height: 600px; color: var(--cream); text-shadow: 0 16px 0 #b23a48; }
+      .chorus .t-top { left: 310px; }
+      #s-v1-6 .t-top, #s-v2-1 .t-top { color: var(--navy); text-shadow: none; }
+      #s-v1-6 .hl, #s-v2-1 .hl { color: #b23a48; }
+      .split { position: absolute; left: 140px; right: 140px; top: 90px; height: 440px; display: flex; gap: 40px; }
+      .half { flex: 1; border-radius: 30px; padding: 30px 50px; }
+      .half h3 { font-family: "Luckiest Guy"; font-size: 100px; font-weight: 400; line-height: 1.1; }
+      .half p { font-size: 50px; font-weight: 700; margin-top: 12px; }
+      .win { background: #2e9d5b; } .war { background: #3b3f2a; color: #f0b7ae; }
+      .scale { position: absolute; left: 610px; top: 290px; width: 700px; height: 400px; }
+      .beam { position: absolute; left: 0; top: 20px; width: 700px; height: 26px; background: var(--ink); border-radius: 13px; }
+      .pan { position: absolute; top: 40px; width: 220px; height: 120px; border-radius: 0 0 110px 110px; font-family: "Luckiest Guy"; font-size: 54px; text-align: center; line-height: 110px; }
+      .pl { left: -40px; background: #2e9d5b; } .pr { right: -40px; background: #6b6f4a; }
+      .post { position: absolute; left: 335px; top: 30px; width: 30px; height: 370px; background: var(--ink); }
+
+      /* tag */
+      .funfact { position: absolute; left: 90px; top: 60px; font-family: "Luckiest Guy"; font-size: 110px; color: var(--gold); }
+      .family { position: absolute; left: 90px; top: 220px; width: 1280px; display: flex; flex-wrap: wrap; gap: 30px; }
+      .nametag { width: 610px; height: 210px; background: #fff; border-radius: 22px; overflow: hidden; text-align: center; color: var(--ink); }
+      .nt-h { background: #d63a3a; color: #fff; font-weight: 700; font-size: 30px; padding: 8px; }
+      .nt-n { font-size: 50px; font-weight: 600; margin-top: 18px; }
+      .nt-n b { color: #d63a3a; font-family: "Luckiest Guy"; font-weight: 400; font-size: 64px; }
+      .nt-r { font-size: 30px; color: #6b6b6b; }
+      .dog { position: absolute; left: 560px; top: 610px; width: 390px; height: 300px; }
+      .dog svg { width: 390px; height: 300px; }
+      .dog-tag { position: absolute; left: -405px; top: -90px; width: 1200px; text-align: center; font-size: 60px; font-weight: 700; color: #fff; background: #d63a3a; border-radius: 20px; padding: 12px 0; }
+      .dog-tag b { font-family: "Luckiest Guy"; font-weight: 400; color: var(--gold); font-size: 72px; }
+      .end-title { position: absolute; left: 0; right: 0; top: 100px; text-align: center; font-family: "Luckiest Guy"; font-size: 280px; color: var(--cream); text-shadow: 0 14px 0 #7a1f3d; }
+      .end-sub { position: absolute; left: 0; right: 0; top: 400px; text-align: center; font-size: 60px; font-weight: 700; color: var(--gold); letter-spacing: 3px; }
+
+      /* ---------- Clawd ---------- */
+      #clawd-pos { position: absolute; left: 0; top: 0; width: 352px; height: 440px; z-index: 20; }
+      #clawd-bob, #clawd-sq { position: absolute; inset: 0; }
+      #clawd { width: 352px; height: 440px; overflow: visible; }
+      .emote { position: absolute; left: 250px; top: -40px; font-family: "Luckiest Guy"; font-size: 150px; color: var(--gold); text-shadow: 0 6px 0 #b23a48; opacity: 0; }
+
+      /* ---------- captions ---------- */
+      .cap { z-index: 30; }
+      .cap-in { position: absolute; left: 50%; bottom: 44px; transform: translateX(-50%); max-width: 1760px; width: max-content; padding: 16px 38px 12px; border-radius: 22px; background: rgba(20,16,14,.82); font-size: 48px; font-weight: 700; color: #fff; text-align: center; line-height: 1.2; }
+      .sung .cap-in { font-family: "Luckiest Guy"; font-weight: 400; font-size: 60px; letter-spacing: 1px; }
+      .w { display: inline-block; color: rgba(255,255,255,.45); }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="__END__" data-width="1920" data-height="1080">
+      <audio id="song" src="assets/lbj_song.wav" data-start="0" data-duration="__END__" data-track-index="0"></audio>
+
+      <!-- backgrounds -->
+      <div class="clip bg" id="bg-intro" data-start="0" data-duration="4.8" data-track-index="1"><div class="bg-fill"></div></div>
+      <div class="clip bg" id="bg-night" data-start="4.8" data-duration="4.8" data-track-index="1"><div class="bg-fill"></div><div class="stars" id="stars"></div></div>
+      <div class="clip bg" id="bg-day" data-start="9.6" data-duration="14.4" data-track-index="1"><div class="bg-fill"></div></div>
+      <div class="clip bg" id="bg-burst1" data-start="24" data-duration="9.6" data-track-index="1"><div class="burst-wrap"><div class="burst"></div></div></div>
+      <div class="clip bg" id="bg-cream" data-start="33.6" data-duration="9.6" data-track-index="1"><div class="bg-fill"></div></div>
+      <div class="clip bg" id="bg-war" data-start="43.2" data-duration="7.2" data-track-index="1"><div class="bg-fill"></div></div>
+      <div class="clip bg" id="bg-dusk" data-start="50.4" data-duration="2.4" data-track-index="1"><div class="bg-fill"></div></div>
+      <div class="clip bg" id="bg-burst2" data-start="52.8" data-duration="9.6" data-track-index="1"><div class="burst-wrap"><div class="burst"></div></div></div>
+      <div class="clip bg" id="bg-tag" data-start="62.4" data-duration="__TAG_REST__" data-track-index="1"><div class="bg-fill"></div></div>
+
+      <!-- scenes -->
+      __SCENES__
+
+      <!-- Clawd -->
+      <div id="clawd-pos">
+        <div id="clawd-bob"><div id="clawd-sq">
+          <svg id="clawd" viewBox="0 -6 16 20" shape-rendering="crispEdges">
+            <g id="c-legs" fill="#b85f42"><rect x="3" y="10" width="1" height="2"/><rect x="5" y="10" width="1" height="2"/><rect x="10" y="10" width="1" height="2"/><rect x="12" y="10" width="1" height="2"/></g>
+            <rect id="c-armL" x="0" y="6" width="2" height="2" fill="#d97757"/>
+            <rect id="c-armR" x="14" y="6" width="2" height="2" fill="#d97757"/>
+            <rect id="c-body" x="2" y="3" width="12" height="7" fill="#d97757"/>
+            <g id="c-eyes" fill="#1a1a1a"><rect x="5" y="5" width="1" height="2"/><rect x="10" y="5" width="1" height="2"/></g>
+            <g id="c-stars" fill="#f2c14e" opacity="0" shape-rendering="auto"><path d="M5.5 4.6 L5.8 5.5 L6.7 5.6 L6 6.1 L6.3 7 L5.5 6.5 L4.7 7 L5 6.1 L4.3 5.6 L5.2 5.5Z"/><path d="M10.5 4.6 L10.8 5.5 L11.7 5.6 L11 6.1 L11.3 7 L10.5 6.5 L9.7 7 L10 6.1 L9.3 5.6 L10.2 5.5Z"/></g>
+            <rect id="c-mouth" x="7" y="7.6" width="2" height="1.2" fill="#5a2415" shape-rendering="auto" rx="0.4"/>
+            <g id="c-hat" shape-rendering="auto">
+              <path d="M4.2 2.6 L4.6 -1.2 Q5.2 -2.2 6.6 -1.4 Q8 -2.4 9.4 -1.4 Q10.8 -2.2 11.4 -1.2 L11.8 2.6Z" fill="#9b6a3a"/>
+              <rect x="4.3" y="1.1" width="7.4" height="0.9" fill="#3a2410"/>
+              <path d="M0.6 2.2 Q1.2 3.6 3 3.3 L13 3.3 Q14.8 3.6 15.4 2.2 Q15.8 1.4 15 1.8 Q14 2.6 12.4 2.4 L3.6 2.4 Q2 2.6 1 1.8 Q0.2 1.4 0.6 2.2Z" fill="#7a4a22"/>
+              <path d="M7.5 0.2 L8 -0.9 L8.5 0.2Z" fill="#f2c14e"/>
+            </g>
+          </svg>
+          <div class="emote" id="emote">!</div>
+        </div></div>
+      </div>
+
+      <!-- captions -->
+      __CAPTIONS__
+    </div>
+
+    <script>
+      const S = window.SONG, MOUTH = window.MOUTH;
+      const BAR = S.bar, BEAT = BAR / 4, SEC = S.sections;
+      const TAG_A = __TAG_A__, TAG_B = __TAG_B__, HIT = __HIT__, END = __END__;
+      const at = (sec, i) => SEC[sec] + i * BAR;
+      const tl = gsap.timeline({ paused: true });
+
+      function rng(seed) {
+        return () => {
+          seed = (seed + 0x6d2b79f5) | 0;
+          let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+          t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+      }
+      const rand = rng(1963);
+      const q = (s) => document.querySelector(s);
+      const qa = (s) => Array.from(document.querySelectorAll(s));
+
+      // ---------- generated decor ----------
+      const stars = q("#stars");
+      for (let i = 0; i < 70; i++) {
+        const s = document.createElement("i");
+        s.style.left = rand() * 1920 + "px";
+        s.style.top = rand() * 700 + "px";
+        s.style.opacity = (0.3 + rand() * 0.7).toFixed(2);
+        stars.appendChild(s);
+      }
+      const CONF_COLORS = ["#f2c14e", "#e8577d", "#7ec8e3", "#2e9d5b", "#f4ede4", "#d97757"];
+      function confetti(sel, t0) {
+        const box = q(sel);
+        for (let i = 0; i < 70; i++) {
+          const c = document.createElement("i");
+          c.style.background = CONF_COLORS[i % CONF_COLORS.length];
+          box.appendChild(c);
+          const ang = rand() * Math.PI * 2, sp = 300 + rand() * 700;
+          const dx = Math.cos(ang) * sp, dy = Math.sin(ang) * sp * 0.7 - 200;
+          tl.fromTo(c, { x: 0, y: 0, rotation: 0, opacity: 1 },
+            { x: dx, y: dy + 500, rotation: rand() * 720 - 360, opacity: 0.9, duration: 2.2, ease: "power1.out" }, t0 + rand() * 0.1);
+        }
+      }
+
+      // ---------- scene entrances ----------
+      qa(".scene").forEach((sc) => {
+        const t = parseFloat(sc.dataset.start);
+        tl.fromTo(sc.querySelector(".in"), { opacity: 0, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.22, ease: "back.out(2)" }, t);
+      });
+      qa(".burst").forEach((b) => {
+        const t = parseFloat(b.closest(".clip").dataset.start);
+        tl.fromTo(b, { rotation: 0 }, { rotation: 120, duration: BAR * 4, ease: "none" }, t);
+      });
+
+      // intro
+      tl.from(".intro-star", { rotation: -90, scale: 0.3, duration: 1.2, ease: "back.out(1.5)" }, 0.1);
+      ["it1", "it2", "it3"].forEach((c, i) => tl.from("." + c, { y: -500, scale: 1.8, opacity: 0, duration: 0.35, ease: "bounce.out" }, 2.4 + i * BEAT));
+      tl.from(".intro-title .dot", { scale: 0, duration: 0.2, stagger: BEAT }, 2.4 + BEAT * 0.5);
+      tl.from(".intro-sub", { y: 40, opacity: 0, duration: 0.4 }, 0.5);
+      tl.from(".intro-credit", { y: 40, opacity: 0, duration: 0.4 }, 1.0);
+
+      // v1
+      let t = at("v1", 0);
+      tl.from(".cal", { y: -700, rotation: -8, duration: 0.6, ease: "bounce.out" }, t);
+      tl.from(".k-left", { x: -80, opacity: 0, duration: 0.4 }, t + 0.8);
+      t = at("v1", 1);
+      tl.fromTo(".plane", { x: -900, y: 80, rotation: -6 }, { x: 1300, y: -60, rotation: -3, duration: BAR, ease: "power1.inOut" }, t);
+      tl.from(".t-mid", { scale: 0.4, opacity: 0, duration: 0.35, ease: "back.out(3)" }, t + 0.5);
+      t = at("v1", 2);
+      tl.from(".fig-wrap.tall", { scaleY: 0.2, transformOrigin: "50% 100%", duration: 0.6, ease: "elastic.out(1,0.5)" }, t + 0.1);
+      tl.from(".height-tag", { scale: 0, rotation: 20, duration: 0.4, ease: "back.out(3)" }, t + 0.9);
+      t = at("v1", 3);
+      tl.fromTo(".fig-wrap.lean", { rotation: 0, x: 0 }, { rotation: 14, x: 120, transformOrigin: "50% 100%", duration: 0.5, ease: "power2.out" }, t + 0.1);
+      tl.fromTo(".senator", { scale: 1, x: 0 }, { scale: 0.7, x: 60, transformOrigin: "50% 100%", duration: 0.5 }, t + 0.2);
+      tl.from(".sweat", { y: -30, opacity: 0, duration: 0.3, stagger: 0.2 }, t + 0.6);
+      tl.from(".st-treat", { scale: 3, rotation: -25, opacity: 0, duration: 0.25, ease: "power4.in" }, t + 1.1);
+      tl.to(".st-treat", { rotation: -6, duration: 0.1 }, t + 1.35);
+      t = at("v1", 4);
+      tl.from(".doc", { y: 900, duration: 0.45, ease: "power3.out" }, t);
+      tl.fromTo("#sigpath", { strokeDasharray: 900, strokeDashoffset: 900 }, { strokeDashoffset: 0, duration: 1.0, ease: "power1.inOut" }, t + 0.5);
+      tl.from(".st-law", { scale: 3, rotation: 30, opacity: 0, duration: 0.2, ease: "power4.in" }, t + 1.6);
+      t = at("v1", 5);
+      tl.from(".b-lbj", { width: 0, duration: 0.9, ease: "power3.out" }, t + 0.2);
+      tl.from(".b-gw", { width: 0, duration: 0.9, ease: "power3.out" }, t + 0.2);
+      tl.fromTo("#cnt-lbj", { innerText: 0 }, { innerText: 486, snap: { innerText: 1 }, duration: 0.9, ease: "power3.out" }, t + 0.2);
+      tl.fromTo("#cnt-gw", { innerText: 0 }, { innerText: 52, snap: { innerText: 1 }, duration: 0.9, ease: "power3.out" }, t + 0.2);
+      tl.from(".st-land", { scale: 3, rotation: 25, opacity: 0, duration: 0.2, ease: "power4.in" }, t + 1.3);
+      t = at("v1", 6);
+      tl.from(".t-top", { y: -120, opacity: 0, duration: 0.35 }, t);
+      qa(".ballot").forEach((b, i) => {
+        tl.fromTo(b, { y: -500, rotation: -20 + i * 13, opacity: 1 }, { y: 0, rotation: 0, duration: 0.35, ease: "power2.in" }, t + 0.2 + i * 0.3);
+        tl.to(b, { y: 380, scaleY: 0.2, opacity: 0, duration: 0.2, ease: "power2.in" }, t + 0.55 + i * 0.3);
+      });
+      tl.fromTo(".bbox", { scaleY: 1 }, { scaleY: 0.92, transformOrigin: "50% 100%", duration: 0.08, yoyo: true, repeat: 7 }, t + 0.7);
+      t = at("v1", 7);
+      tl.from(".mega", { scale: 0, rotation: -10, duration: 0.45, ease: "back.out(3)" }, t);
+      confetti("#conf1", t + 0.1);
+
+      // choruses
+      ["ch1", "ch2"].forEach((sec) => {
+        const words = S.words.filter((w) => w.sec === sec && ["L", "B", "J"].includes(w.w));
+        [0, 2].forEach((line) => {
+          const slot = line === 0 ? "a" : "c";
+          words.filter((w) => w.line === line).forEach((w, k) => {
+            tl.fromTo(`#s-${sec}-${slot} .lt${k + 1}`, { scale: 3, opacity: 0, rotation: k % 2 ? 12 : -12 },
+              { scale: 1, opacity: 1, rotation: 0, duration: 0.18, ease: "back.out(3)" }, w.t);
+          });
+          tl.to(`#s-${sec}-${slot} .lbj-letters`, { y: 20, duration: BEAT / 2, yoyo: true, repeat: 5, ease: "sine.inOut" }, at(sec, line) + BEAT);
+        });
+      });
+      t = at("ch1", 1);
+      tl.from(".banner", { scaleX: 0, duration: 0.4, ease: "back.out(2)" }, t);
+      confetti("#conf-ch1", t + 0.8);
+      t = at("ch1", 3);
+      tl.fromTo(".lone-star", { rotation: -180, scale: 0 }, { rotation: 0, scale: 1, duration: 0.7, ease: "back.out(2)" }, t);
+      t = at("ch2", 1);
+      tl.from(".half.win", { x: -800, duration: 0.4, ease: "power3.out" }, t);
+      tl.from(".half.war", { x: 800, duration: 0.4, ease: "power3.out" }, t + 0.9);
+      t = at("ch2", 3);
+      tl.fromTo(".beam", { rotation: -10 }, { rotation: 10, duration: BEAT, yoyo: true, repeat: 3, ease: "sine.inOut" }, t);
+
+      // v2
+      t = at("v2", 0);
+      tl.from(".c1", { y: -500, rotation: -15, duration: 0.4, ease: "back.out(2)" }, t);
+      tl.from(".c2", { y: -500, rotation: 15, duration: 0.4, ease: "back.out(2)" }, t + 0.9);
+      tl.from(".bus", { x: -1400, duration: 0.8, ease: "power3.out" }, t + 0.3);
+      t = at("v2", 1);
+      tl.from(".m1", { rotationY: 90, duration: 0.35, ease: "back.out(2)" }, t);
+      tl.from(".m2", { rotationY: 90, duration: 0.35, ease: "back.out(2)" }, t + 0.7);
+      t = at("v2", 2);
+      tl.from(".passport", { x: -700, rotation: -20, duration: 0.4 }, t);
+      tl.from(".pp-stamp", { scale: 2.5, opacity: 0, rotation: -30, duration: 0.2, ease: "power4.in" }, t + 0.6);
+      tl.from(".school", { y: 800, duration: 0.45, ease: "back.out(1.4)" }, t + 1.1);
+      t = at("v2", 3);
+      tl.from(".court", { y: 60, opacity: 0, duration: 0.4 }, t);
+      tl.fromTo(".gavel", { rotation: -40 }, { rotation: 10, transformOrigin: "40% 90%", duration: 0.12, ease: "power4.in", yoyo: true, repeat: 3 }, t + 0.5);
+      tl.from(".tm-card", { y: 200, opacity: 0, duration: 0.35 }, t + 0.3);
+      t = at("v2", 4);
+      tl.from(".stencil", { opacity: 0, scale: 1.4, duration: 0.3 }, t);
+      tl.fromTo("#troopline", { strokeDasharray: 1100, strokeDashoffset: 1100 }, { strokeDashoffset: 0, duration: 1.6, ease: "power2.in" }, t + 0.3);
+      t = at("v2", 5);
+      tl.fromTo("#cnt-troops", { innerText: 0 }, { innerText: 536, snap: { innerText: 1 }, duration: 1.2, ease: "power2.out" }, t + 0.1);
+      qa(".sign").forEach((s, i) => {
+        tl.from(s, { scale: 0, opacity: 0, duration: 0.35, ease: "back.out(2)" }, t + 0.3 + i * 0.15);
+        tl.to(s, { y: -30, rotation: i % 2 ? 6 : -6, duration: BEAT / 2, yoyo: true, repeat: 3, ease: "sine.inOut" }, t + 0.8 + i * 0.1);
+      });
+      t = at("v2", 6);
+      tl.from(".tv", { scale: 0.2, opacity: 0, duration: 0.3, ease: "back.out(2)" }, t);
+      tl.from(".tv-q", { opacity: 0, duration: 0.3 }, t + 0.3);
+      tl.fromTo(".scan", { y: 0 }, { y: 28, duration: BAR, ease: "none" }, t);
+      t = at("v2", 7);
+      tl.fromTo(".sun", { y: 0 }, { y: 180, duration: BAR, ease: "none" }, t);
+      tl.from(".ranch-sign", { rotation: -30, y: -300, duration: 0.5, ease: "bounce.out" }, t + 0.2);
+
+      // tag
+      const nt = qa(".nametag");
+      const nameTimes = [TAG_A + 0.05, TAG_A + 0.9, TAG_A + 2.3, TAG_A + 3.4];
+      tl.from(".funfact", { scale: 0, rotation: -12, duration: 0.3, ease: "back.out(3)" }, SEC.tag);
+      nt.forEach((n, i) => tl.from(n, { scale: 0, rotation: i % 2 ? 8 : -8, duration: 0.3, ease: "back.out(2.5)" }, nameTimes[i]));
+      tl.from(".nt-n b", { color: "#1f1a17", duration: 0.2, stagger: 0.05 }, TAG_B - 1.0);
+      tl.to(".family", { scale: 0.62, x: 240, y: -40, transformOrigin: "0 0", duration: 0.3, ease: "power2.inOut" }, TAG_B - 0.3);
+      tl.from(".dog", { y: 600, duration: 0.35, ease: "back.out(2)" }, TAG_B - 0.1);
+      tl.from(".dog-tag", { scale: 0, duration: 0.3, ease: "back.out(3)" }, TAG_B + 0.3);
+      tl.from(".end-title", { scale: 0, rotation: -8, duration: 0.45, ease: "back.out(3)" }, HIT);
+      tl.from(".end-sub", { y: 60, opacity: 0, duration: 0.4 }, HIT + 0.4);
+      confetti("#conf-end", HIT + 0.05);
+
+      // ---------- captions ----------
+      qa(".cap").forEach((c) => {
+        const t0 = parseFloat(c.dataset.start);
+        tl.from(c.querySelector(".cap-in"), { y: 40, opacity: 0, duration: 0.15 }, t0);
+      });
+      qa(".w").forEach((w) => {
+        const t0 = parseFloat(w.dataset.t);
+        tl.to(w, { color: "#f2c14e", duration: 0.05 }, t0);
+        tl.fromTo(w, { scale: 1 }, { scale: 1.1, duration: 0.1, yoyo: true, repeat: 1 }, t0);
+      });
+
+      // ---------- Clawd ----------
+      const P = (tt, x, y, s, d = 0.4, ease = "back.out(1.6)") =>
+        tl.to("#clawd-pos", { x, y, scale: s, duration: d, ease, transformOrigin: "0 0" }, tt);
+      tl.set("#clawd-pos", { x: 1420, y: 1150, scale: 1, transformOrigin: "0 0" }, 0);
+      P(0.15, 1420, 520, 1, 0.6, "back.out(1.4)");
+      P(at("v1", 0), 1500, 520, 0.85);
+      P(at("v1", 7), 784, 470, 1.15);
+      P(at("ch1", 0), 784, 470, 1.1);
+      P(at("v2", 0), 1500, 520, 0.85);
+      P(at("v2", 7), 1150, 520, 0.8, 0.3);
+      tl.to("#clawd-pos", { x: 1540, duration: BAR - 0.4, ease: "none" }, at("v2", 7) + 0.3);
+      P(at("ch2", 0), 784, 470, 1.1);
+      P(SEC.tag, 1480, 480, 0.9);
+      P(HIT, 784, 500, 1.1);
+
+      // hat tip in the intro + stars eyes on BIG DEAL / choruses
+      tl.to("#c-hat", { rotation: -25, y: -1.5, svgOrigin: "8 2", duration: 0.25, yoyo: true, repeat: 1, repeatDelay: 0.5 }, 1.0);
+      const starEyes = (t0, t1) => {
+        tl.set("#c-eyes", { opacity: 0 }, t0); tl.set("#c-stars", { opacity: 1 }, t0);
+        tl.set("#c-eyes", { opacity: 1 }, t1); tl.set("#c-stars", { opacity: 0 }, t1);
+      };
+      starEyes(at("v1", 7), at("ch1", 0) + BAR);
+      starEyes(at("ch2", 0), at("ch2", 0) + BAR);
+      starEyes(HIT, END);
+      // look up at the 6'4" Texan; sad at Dallas & Vietnam
+      tl.to("#c-eyes", { y: -1, duration: 0.2 }, at("v1", 2)); tl.to("#c-eyes", { y: 0, duration: 0.2 }, at("v1", 4));
+      tl.to("#c-eyes", { scaleY: 0.5, svgOrigin: "8 7", duration: 0.2 }, at("v1", 0)); tl.to("#c-eyes", { scaleY: 1, duration: 0.2 }, at("v1", 1));
+      tl.to("#c-eyes", { scaleY: 0.5, svgOrigin: "8 7", duration: 0.2 }, at("v2", 4)); tl.to("#c-eyes", { scaleY: 1, duration: 0.2 }, at("v2", 7));
+      // blinks
+      [3.4, 8.2, 13.1, 18.7, 29.3, 36.9, 41.6, 51.2, 58.5, 64.1].forEach((b) =>
+        tl.to("#c-eyes", { scaleY: 0.1, svgOrigin: "8 6", duration: 0.06, yoyo: true, repeat: 1 }, b));
+      // emote on "Even the dog!"
+      tl.fromTo("#emote", { opacity: 0, scale: 0, y: 40 }, { opacity: 1, scale: 1, y: 0, duration: 0.25, ease: "back.out(4)" }, TAG_B);
+      tl.to("#emote", { opacity: 0, duration: 0.2 }, HIT);
+
+      // beat bounce + squash, arm pumps (music sections only)
+      const musicOn = (tt) => tt >= 2.4 && tt < SEC.tag - 0.05;
+      for (let b = 0; b * BEAT < END; b++) {
+        const tt = b * BEAT;
+        if (!musicOn(tt)) continue;
+        const big = b % 2 === 0;
+        tl.to("#clawd-bob", { y: big ? -34 : -18, duration: BEAT * 0.35, ease: "power2.out" }, tt);
+        tl.to("#clawd-bob", { y: 0, duration: BEAT * 0.55, ease: "power2.in" }, tt + BEAT * 0.35);
+        tl.fromTo("#clawd-sq", { scaleX: 1.1, scaleY: 0.9 }, { scaleX: 1, scaleY: 1, transformOrigin: "50% 100%", duration: BEAT * 0.5, ease: "elastic.out(1,0.4)" }, tt + BEAT * 0.9 - 0.001);
+        const chorus = (tt >= SEC.ch1 && tt < SEC.v2) || (tt >= SEC.ch2 && tt < SEC.tag);
+        const armAmp = chorus ? 3 : 1.2;
+        tl.to("#c-armL", { y: b % 2 ? armAmp : -armAmp, duration: BEAT * 0.4, ease: "power2.out" }, tt);
+        tl.to("#c-armR", { y: b % 2 ? -armAmp : armAmp, duration: BEAT * 0.4, ease: "power2.out" }, tt);
+        if (chorus) tl.to("#clawd", { rotation: b % 2 ? 6 : -6, transformOrigin: "50% 100%", duration: BEAT * 0.5, ease: "sine.inOut" }, tt);
+      }
+      tl.to("#clawd", { rotation: 0, duration: 0.2 }, SEC.v2);
+      tl.to("#clawd", { rotation: 0, duration: 0.2 }, SEC.tag);
+      tl.to(["#c-armL", "#c-armR"], { y: 0, duration: 0.2 }, SEC.tag);
+      // final wave
+      tl.to("#c-armR", { y: -3, duration: 0.15, yoyo: true, repeat: 7 }, HIT + 0.2);
+
+      // lip sync from the vocal envelope (30 fps)
+      let last = -1;
+      MOUTH.forEach((v, i) => {
+        const lvl = Math.round(Math.min(1, v) * 4) / 4;
+        if (lvl !== last) {
+          tl.set("#c-mouth", { scaleY: 0.25 + lvl * 1.4, svgOrigin: "8 7.6" }, i / 30);
+          last = lvl;
+        }
+      });
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

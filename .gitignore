@@ -1,0 +1,16 @@
+# Python / uv — recreate with `uv sync`
+.venv/
+__pycache__/
+.cache/
+
+# Large or generated media — regenerate, don't commit
+*.mp4
+*.wav
+models/
+renders/
+snapshots/
+stems/
+
+# Node / HyperFrames
+node_modules/
+.hyperframes/
