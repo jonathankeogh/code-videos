@@ -42,14 +42,14 @@ hyperframes render --output renders/laplacian-song.mp4   # or: hyperframes previ
 ## Regenerate the audio
 
 ```bash
-uv venv audio-src/.venv && VIRTUAL_ENV=audio-src/.venv uv pip install -r audio-src/requirements.txt
+# Python deps live in the shared uv project at ~/code-videos (pyproject.toml); uv run syncs them.
 # Kokoro model with a duration output (needed for phoneme timings):
 #   ~/.cache/kokoro/kokoro-v1.0-v11.onnx   (github.com/thewh1teagle/kokoro-onnx, release model-files-v1.1)
 #   ~/.cache/kokoro/voices-v1.0.bin
 cd audio-src
-../audio-src/.venv/bin/python vocals.py   # sings every line (cached per line in stems/cache)
-../audio-src/.venv/bin/python music.py    # backing track + SFX stems
-../audio-src/.venv/bin/python mix.py      # master wav + assets/data/song-data.js
+uv run vocals.py   # sings every line (cached per line in stems/cache)
+uv run music.py    # backing track + SFX stems
+uv run mix.py      # master wav + assets/data/song-data.js
 ```
 
 Edit lyrics/melody in `audio-src/song.py` (`"syl:NOTE:eighths"` tokens), re-run the three
