@@ -32,7 +32,7 @@ All timing (syllables, cues, mouth envelope) flows from `audio-src/song.py` →
 ## Re-render the video
 
 ```bash
-cd ~/laplacian-video
+cd ~/code-videos/laplacian-video
 hyperframes render --output renders/laplacian-song.mp4   # or: hyperframes preview
 ```
 
